@@ -11,6 +11,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== 'delivery') return;
@@ -34,7 +35,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
 
       // Filter out notifications for delivered orders
       const activeNotifications = newNotifications.filter(notif => {
-        // Keep assigned notifications
+        // Keep assignment notifications
         if (notif.type === 'order_assigned') return true;
         
         // For status updates, only show if not delivered
@@ -47,7 +48,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
 
       setNotifications(activeNotifications);
       
-      // Show toast for new unread notifications
+      // Calculate unread count
       const unread = activeNotifications.filter(n => !n.read).length;
       setUnreadCount(unread);
       
@@ -62,7 +63,8 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
             onClick={() => {
               toast.dismiss(t.id);
               markAsRead(latestUnread.id);
-              navigate(`/delivery/orders`);
+              // Navigate directly to the specific order
+              navigate(`/delivery/orders/${latestUnread.data?.orderId}`);
             }}
           >
             <div className="flex-1 w-0 p-4">
@@ -102,7 +104,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, navigate]);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -116,8 +118,22 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
     }
   };
 
-  const handleNotificationClick = () => {
-    navigate('/delivery/orders');
+  const markAllAsRead = async () => {
+    notifications.forEach(async (notification) => {
+      if (!notification.read) {
+        await markAsRead(notification.id);
+      }
+    });
+  };
+
+  const handleViewOrder = (e, notification) => {
+    e.stopPropagation();
+    // Navigate directly to the specific order
+    navigate(`/delivery/orders/${notification.data?.orderId}`);
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    setIsOpen(false);
     if (onOrderComplete) {
       onOrderComplete();
     }
@@ -128,7 +144,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   return (
     <div className="relative">
       <button
-        onClick={handleNotificationClick}
+        onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-gray-100 rounded-lg"
       >
         <BellIcon className="h-6 w-6 text-gray-600" />
@@ -138,6 +154,79 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
           </span>
         )}
       </button>
+
+      {/* Notifications Dropdown */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
+          <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+            <h3 className="font-semibold text-gray-900">Notifications</h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-sm text-primary-600 hover:text-primary-700"
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <BellIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>No notifications</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-4 hover:bg-gray-50 transition-colors ${
+                    !notification.read ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      {notification.type === 'order_assigned' ? (
+                        <span className="text-xl">🚚</span>
+                      ) : (
+                        <span className="text-xl">📦</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {notification.title}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {notification.body}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </p>
+                      
+                      {/* View Order Button - Now navigates to specific order */}
+                      <button
+                        onClick={(e) => handleViewOrder(e, notification)}
+                        className="mt-2 text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
+                      >
+                        View Order
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="p-3 border-t text-center sticky bottom-0 bg-white">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -53,7 +53,7 @@ const Layout = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      // Add these routes inside your Routes component
+      {/* Profile and Settings Routes */}
       <Route path="/profile" element={
         <ProtectedRoute allowedRoles={['student', 'admin', 'delivery']}>
           <UserProfile />
@@ -65,13 +65,14 @@ function AppRoutes() {
           <UserSettings />
         </ProtectedRoute>
       } />
+      
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
       {/* Student Routes - only students can access */}
       <Route path="/menu" element={
-        <ProtectedRoute allowedRoles={['student']}>  {/* Removed admin and delivery */}
+        <ProtectedRoute allowedRoles={['student']}>
           <Menu />
         </ProtectedRoute>
       } />
@@ -81,7 +82,7 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/my-orders" element={
-        <ProtectedRoute allowedRoles={['student', 'admin']}> {/* Admin can view orders */}
+        <ProtectedRoute allowedRoles={['student', 'admin']}>
           <MyOrders />
         </ProtectedRoute>
       } />
@@ -124,9 +125,18 @@ function AppRoutes() {
           <DeliveryDashboard />
         </ProtectedRoute>
       } />
+      
+      {/* ✅ FIXED: Added the missing route for Assigned Orders list */}
       <Route path="/delivery/orders" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <AssignedOrders />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route for individual order tracking */}
+      <Route path="/delivery/orders/:orderId" element={
+        <ProtectedRoute allowedRoles={['delivery']}>
+          <OrderTracking />
         </ProtectedRoute>
       } />
 

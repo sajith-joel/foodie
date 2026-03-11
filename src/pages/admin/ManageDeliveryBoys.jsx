@@ -3,11 +3,11 @@ import GlassCard from '../../components/ui/GlassCard';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
-import { 
-  UserPlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
-  CheckCircleIcon, 
+import {
+  UserPlusIcon,
+  PencilIcon,
+  TrashIcon,
+  CheckCircleIcon,
   XCircleIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
@@ -37,7 +37,7 @@ const ManageDeliveryBoys = () => {
       const partners = await getDeliveryPartners();
       console.log('Fetched delivery partners:', partners);
       setDeliveryBoys(partners);
-      
+
       if (partners.length === 0) {
         // Use info toast instead of success for empty state
         toast('No delivery partners found. Add one using the "Add New Partner" button.', {
@@ -78,7 +78,7 @@ const ManageDeliveryBoys = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error('Please fill in all required fields');
@@ -102,14 +102,45 @@ const ManageDeliveryBoys = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to remove this delivery partner?')) {
-      try {
-        await deleteDeliveryPartner(id);
-        toast.success('Delivery partner removed successfully');
+    // Show confirmation dialog with more context
+    const confirmDelete = window.confirm(
+      'Are you sure you want to remove this delivery partner?\n\n' +
+      'They will no longer receive new orders and their status will be set to inactive.'
+    );
+
+    if (!confirmDelete) return;
+
+    // Show loading toast
+    const loadingToast = toast.loading('Removing delivery partner...');
+
+    try {
+      console.log('Attempting to delete partner with ID:', id);
+
+      // Call the delete function
+      const result = await deleteDeliveryPartner(id);
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      if (result && result.success) {
+        toast.success(result.message || 'Delivery partner removed successfully');
         fetchDeliveryBoys(); // Refresh the list
-      } catch (error) {
-        console.error('Error deleting delivery partner:', error);
-        toast.error('Failed to remove delivery partner');
+      } else {
+        toast.error(result?.message || 'Failed to remove delivery partner');
+      }
+    } catch (error) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      console.error('Error deleting delivery partner:', error);
+
+      // Show specific error message
+      if (error.message.includes('permission')) {
+        toast.error('Permission denied. Make sure you are logged in as admin.');
+      } else if (error.message.includes('not found')) {
+        toast.error('Delivery partner not found. They may have been already removed.');
+      } else {
+        toast.error(error.message || 'Failed to remove delivery partner');
       }
     }
   };
@@ -174,7 +205,7 @@ const ManageDeliveryBoys = () => {
         <GlassCard className="p-4">
           <p className="text-sm text-gray-600">Avg Rating</p>
           <p className="text-2xl font-bold text-yellow-500">
-            {deliveryBoys.length > 0 
+            {deliveryBoys.length > 0
               ? (deliveryBoys.reduce((sum, boy) => sum + (boy.rating || 0), 0) / deliveryBoys.length).toFixed(1)
               : '0.0'}
           </p>
@@ -220,11 +251,10 @@ const ManageDeliveryBoys = () => {
                     <td className="py-3 px-4">
                       <button
                         onClick={() => toggleStatus(boy.id, boy.status)}
-                        className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
-                          boy.status === 'active'
+                        className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${boy.status === 'active'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}
+                          }`}
                       >
                         {boy.status === 'active' ? (
                           <CheckCircleIcon className="h-4 w-4" />

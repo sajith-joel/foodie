@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import GlassCard from '../../components/ui/GlassCard';
 import Button from '../../components/ui/Button';
-import { getPartnerAssignedOrders, updateDeliveryStatus } from '../../services/deliveryService';
+import { updateDeliveryStatus } from '../../services/deliveryService';
 import { getOrderById } from '../../services/orderService';
 import { useNotifications } from '../../hooks/useNotifications';
+import { db } from '../../services/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { MapPinIcon, PhoneIcon, CheckCircleIcon, ClockIcon, ArrowPathIcon, UserIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -16,26 +18,47 @@ const AssignedOrders = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
+  // Set up real-time listener for assigned orders
   useEffect(() => {
-    if (user) {
-      fetchAssignedOrders();
-    }
-  }, [user]);
+    if (!user) return;
 
-  const fetchAssignedOrders = async () => {
-    setLoading(true);
-    try {
-      console.log('Fetching assigned orders for user:', user?.uid);
-      const assignedOrders = await getPartnerAssignedOrders(user?.uid);
-      console.log('Assigned orders:', assignedOrders);
-      setOrders(assignedOrders);
-    } catch (error) {
-      console.error('Error fetching assigned orders:', error);
-      toast.error('Failed to load assigned orders');
-    } finally {
+    console.log('Setting up real-time listener for assigned orders:', user.uid);
+
+    // Create query for orders assigned to this delivery partner
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('deliveryPartnerId', '==', user.uid));
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('🔥 Real-time update received!', snapshot.docChanges().length, 'changes');
+      
+      const fetchedOrders = [];
+      snapshot.forEach(doc => {
+        fetchedOrders.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      // Sort by assignedAt (newest first)
+      fetchedOrders.sort((a, b) => {
+        const dateA = a.assignedAt ? new Date(a.assignedAt) : new Date(0);
+        const dateB = b.assignedAt ? new Date(b.assignedAt) : new Date(0);
+        return dateB - dateA;
+      });
+
+      console.log('Orders updated:', fetchedOrders.length);
+      setOrders(fetchedOrders);
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error('Error in real-time listener:', error);
+      toast.error('Failed to listen for order updates');
+      setLoading(false);
+    });
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, [user]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
@@ -51,7 +74,6 @@ const AssignedOrders = () => {
       }
 
       toast.success(`Order status updated to ${newStatus.replace('_', ' ')}`);
-      fetchAssignedOrders();
       
     } catch (error) {
       console.error('Error updating status:', error);
@@ -106,13 +128,9 @@ const AssignedOrders = () => {
             <option value="out_for_delivery">Out for Delivery</option>
             <option value="delivered">Delivered</option>
           </select>
-          <button
-            onClick={fetchAssignedOrders}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Refresh"
-          >
-            <ArrowPathIcon className="h-5 w-5 text-gray-600" />
-          </button>
+          <div className="text-xs text-green-600 animate-pulse">
+            🔴 Live
+          </div>
         </div>
       </div>
 
@@ -124,9 +142,11 @@ const AssignedOrders = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Orders Assigned</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Orders Found</h2>
           <p className="text-gray-600">
-            You don't have any assigned orders at the moment.
+            {filter === 'all' 
+              ? "You don't have any assigned orders yet." 
+              : `No ${filter} orders found.`}
           </p>
         </GlassCard>
       ) : (
@@ -143,7 +163,7 @@ const AssignedOrders = () => {
                     </span>
                   </div>
 
-                  {/* Customer Details Card */}
+                  {/* Customer Details */}
                   <div className="bg-gray-50 p-4 rounded-lg mb-4">
                     <h4 className="font-medium text-gray-700 mb-3 flex items-center">
                       <UserIcon className="h-4 w-4 mr-2" />
@@ -159,7 +179,7 @@ const AssignedOrders = () => {
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Phone:</span>{' '}
-                          {(order.customerPhone || order.customer?.phone) ? (
+                          {order.customerPhone || order.customer?.phone ? (
                             <a 
                               href={`tel:${order.customerPhone || order.customer?.phone}`}
                               className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
@@ -173,7 +193,7 @@ const AssignedOrders = () => {
                         </p>
                       </div>
 
-                      {/* Right Column - Delivery Location */}
+                      {/* Delivery Location */}
                       <div className="space-y-2">
                         <p className="text-sm">
                           <span className="font-medium">Delivery Location:</span>

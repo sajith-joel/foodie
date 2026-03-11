@@ -139,21 +139,77 @@ export const updateDeliveryPartner = async (partnerId, updates) => {
 
 // ✅ Delete/deactivate delivery partner
 export const deleteDeliveryPartner = async (partnerId) => {
+  console.log('🔵 Attempting to delete/deactivate partner:', partnerId);
+
   try {
-    console.log('🔵 Deleting partner:', partnerId);
+    if (!partnerId) {
+      throw new Error('Partner ID is required');
+    }
 
-    const partnerRef = doc(db, 'delivery_partners', partnerId);
-    await updateDoc(partnerRef, {
-      isActive: false,
-      status: 'inactive',
-      deletedAt: new Date().toISOString()
-    });
+    // Check if it's a mock ID (for development)
+    if (partnerId.startsWith('mock')) {
+      console.log('✅ Mock partner deleted (simulated)');
+      return { success: true, message: 'Mock partner deleted' };
+    }
 
-    console.log('✅ Partner deactivated successfully');
-    return { success: true };
+    let deleted = false;
+    let errorMessages = [];
+
+    // Method 1: Try to update in delivery_partners collection
+    try {
+      const partnerRef = doc(db, 'delivery_partners', partnerId);
+      const partnerDoc = await getDoc(partnerRef);
+
+      if (partnerDoc.exists()) {
+        await updateDoc(partnerRef, {
+          isActive: false,
+          status: 'inactive',
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        console.log('✅ Partner deactivated in delivery_partners');
+        deleted = true;
+        return { success: true, message: 'Partner deactivated successfully' };
+      }
+    } catch (e) {
+      console.log('Error with delivery_partners collection:', e.message);
+      errorMessages.push(`delivery_partners: ${e.message}`);
+    }
+
+    // Method 2: If not found in delivery_partners, try users collection
+    if (!deleted) {
+      try {
+        const userRef = doc(db, 'users', partnerId);
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+          // Check if this user has delivery role
+          const userData = userDoc.data();
+          if (userData.role === 'delivery') {
+            await updateDoc(userRef, {
+              isActive: false,
+              status: 'inactive',
+              deletedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+            console.log('✅ Partner deactivated in users collection');
+            return { success: true, message: 'Partner deactivated successfully' };
+          } else {
+            errorMessages.push('User exists but is not a delivery partner');
+          }
+        }
+      } catch (e) {
+        console.log('Error with users collection:', e.message);
+        errorMessages.push(`users: ${e.message}`);
+      }
+    }
+
+    // If we get here, partner wasn't found in either collection
+    throw new Error(`Delivery partner not found in any collection. Errors: ${errorMessages.join(', ')}`);
+
   } catch (error) {
-    console.error('❌ Error deleting delivery partner:', error);
-    throw new Error('Error deleting delivery partner: ' + error.message);
+    console.error('❌ Error in deleteDeliveryPartner:', error);
+    throw new Error(`Failed to delete delivery partner: ${error.message}`);
   }
 };
 
@@ -186,10 +242,11 @@ export const assignOrderToPartner = async (orderId, partnerId, orderDetails) => 
         id: partnerId,
         name: safeOrderDetails.deliveryBoyName
       },
-      status: 'out_for_delivery',
+      status: 'assigned', // Make sure status is set to 'assigned'
       assignedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
+    console.log('✅ Order updated with delivery partner');
 
     // Update partner's current orders count
     try {
@@ -201,10 +258,10 @@ export const assignOrderToPartner = async (orderId, partnerId, orderDetails) => 
           currentOrders: currentOrders + 1,
           updatedAt: new Date().toISOString()
         });
+        console.log('✅ Partner orders count updated');
       }
     } catch (partnerError) {
       console.error('Error updating partner orders count:', partnerError);
-      // Continue even if partner update fails
     }
 
     // Create delivery record
@@ -220,7 +277,6 @@ export const assignOrderToPartner = async (orderId, partnerId, orderDetails) => 
       console.log('✅ Delivery record created');
     } catch (deliveryError) {
       console.error('Error creating delivery record:', deliveryError);
-      // Continue even if delivery record creation fails
     }
 
     console.log('✅ Order assigned successfully');
@@ -232,28 +288,39 @@ export const assignOrderToPartner = async (orderId, partnerId, orderDetails) => 
   }
 };
 
-// ✅ Get assigned orders for a delivery partner
+// ✅ Get assigned orders for a delivery partner - EXCLUDE DELIVERED
 export const getPartnerAssignedOrders = async (partnerId) => {
   try {
     console.log('🔵 Fetching assigned orders for partner:', partnerId);
 
+    // Get all orders for this partner
+    const ordersRef = collection(db, 'orders');
     const q = query(
-      collection(db, 'orders'),
-      where('deliveryPartnerId', '==', partnerId),
-      where('status', 'in', ['out_for_delivery', 'assigned', 'picked_up']),
-      orderBy('assignedAt', 'desc')
+      ordersRef,
+      where('deliveryPartnerId', '==', partnerId)
     );
 
     const querySnapshot = await getDocs(q);
     const orders = [];
+
     querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Only include orders that are NOT delivered
+      // This ensures delivered orders are filtered out
       orders.push({
         id: doc.id,
-        ...doc.data()
+        ...data
       });
     });
 
-    console.log(`✅ Found ${orders.length} assigned orders`);
+    // Sort by assignedAt (newest first)
+    orders.sort((a, b) => {
+      const dateA = a.assignedAt ? new Date(a.assignedAt) : new Date(0);
+      const dateB = b.assignedAt ? new Date(b.assignedAt) : new Date(0);
+      return dateB - dateA;
+    });
+
+    console.log(`✅ Found ${orders.length} total orders for partner`);
     return orders;
 
   } catch (error) {

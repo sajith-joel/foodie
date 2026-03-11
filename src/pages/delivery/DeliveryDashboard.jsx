@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import GlassCard from '../../components/ui/GlassCard';
 import { useNotifications } from '../../hooks/useNotifications';
-import { getPartnerAssignedOrders, updateDeliveryStatus } from '../../services/deliveryService';
+import { updateDeliveryStatus } from '../../services/deliveryService';
 import { getOrderById } from '../../services/orderService';
 import DeliveryNotifications from '../../components/notifications/DeliveryNotifications';
+import { db } from '../../services/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import {
   ClipboardDocumentListIcon,
   CheckCircleIcon,
   ClockIcon,
   MapPinIcon,
   CurrencyRupeeIcon,
-  ArrowPathIcon,
   PhoneIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
@@ -30,101 +31,97 @@ const DeliveryDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  // Set up real-time listener for orders
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
+    if (!user) return;
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      console.log('Fetching delivery dashboard data for partner:', user?.uid);
-      
-      // Get all orders for this partner
-      const assignedOrders = await getPartnerAssignedOrders(user?.uid);
-      console.log('All orders:', assignedOrders);
-      
-      // Get today's date range
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      // Calculate stats
-      const completedDeliveries = assignedOrders.filter(order => 
-        order.status === 'delivered'
-      ).length;
-      
-      const pendingDeliveries = assignedOrders.filter(order => 
-        ['out_for_delivery', 'assigned', 'picked_up'].includes(order.status)
-      ).length;
-      
-      // Calculate today's deliveries (orders delivered today)
-      const todayDeliveries = assignedOrders.filter(order => {
-        if (order.status !== 'delivered') return false;
-        const deliveredAt = order.deliveredAt || order.updatedAt;
-        if (!deliveredAt) return false;
-        const deliveredDate = new Date(deliveredAt);
-        return deliveredDate >= today && deliveredDate < tomorrow;
-      }).length;
-      
-      // Calculate earnings (₹50 per delivered order)
-      const totalEarnings = completedDeliveries * 50;
+    console.log('Setting up real-time listener for delivery partner:', user.uid);
 
-      // Format current orders for display - ONLY non-delivered orders
-      const currentOrders = assignedOrders
-        .filter(order => {
-          // Only show orders that are NOT delivered and NOT cancelled
-          return !['delivered', 'cancelled'].includes(order.status);
-        })
-        .map(order => ({
-          id: order.id?.slice(-6),
-          fullId: order.id,
-          customerName: order.customerName || order.customer?.name || 'Customer',
-          customerPhone: order.customerPhone || order.customer?.phone || '',
-          address: order.customerAddress || order.customer?.address || 'Address not specified',
-          deliveryLocation: order.deliveryLocation || null,
-          items: order.items?.map(item => 
-            `${item.name} (${item.quantity}x)`
-          ) || [],
-          total: order.total,
-          status: order.status,
-          createdAt: order.createdAt,
-          assignedAt: order.assignedAt
-        }));
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('deliveryPartnerId', '==', user.uid));
 
-      console.log('Current orders (non-delivered):', currentOrders);
-      console.log('Today deliveries:', todayDeliveries);
-      console.log('Completed deliveries:', completedDeliveries);
-
-      setStats({
-        todayDeliveries,
-        completedDeliveries,
-        pendingDeliveries,
-        totalEarnings,
-        currentOrders
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('🔥 Real-time update received!', snapshot.docChanges().length, 'changes');
+      
+      const orders = [];
+      snapshot.forEach(doc => {
+        orders.push({
+          id: doc.id,
+          ...doc.data()
+        });
       });
 
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
+      processOrders(orders);
       setLoading(false);
-    }
+    }, (error) => {
+      console.error('Error in real-time listener:', error);
+      toast.error('Failed to listen for order updates');
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const processOrders = (orders) => {
+    console.log('Processing orders:', orders.length);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const completedDeliveries = orders.filter(order => 
+      order.status === 'delivered'
+    ).length;
+    
+    const pendingDeliveries = orders.filter(order => 
+      ['out_for_delivery', 'assigned', 'picked_up'].includes(order.status)
+    ).length;
+    
+    const todayDeliveries = orders.filter(order => {
+      if (order.status !== 'delivered') return false;
+      const deliveredAt = order.deliveredAt || order.updatedAt;
+      if (!deliveredAt) return false;
+      const deliveredDate = new Date(deliveredAt);
+      return deliveredDate >= today && deliveredDate < tomorrow;
+    }).length;
+    
+    const totalEarnings = completedDeliveries * 50;
+
+    const currentOrders = orders
+      .filter(order => !['delivered', 'cancelled'].includes(order.status))
+      .map(order => ({
+        id: order.id?.slice(-6),
+        fullId: order.id,
+        customerName: order.customerName || order.customer?.name || 'Customer',
+        customerPhone: order.customerPhone || order.customer?.phone || '',
+        address: order.customerAddress || order.customer?.address || 'Address not specified',
+        deliveryLocation: order.deliveryLocation || null,
+        items: order.items?.map(item => 
+          `${item.name} (${item.quantity}x)`
+        ) || [],
+        total: order.total,
+        status: order.status,
+        createdAt: order.createdAt,
+        assignedAt: order.assignedAt
+      }));
+
+    setStats({
+      todayDeliveries,
+      completedDeliveries,
+      pendingDeliveries,
+      totalEarnings,
+      currentOrders
+    });
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       console.log(`Updating order ${orderId} to ${newStatus}`);
       
-      // Get order details before update
       const order = await getOrderById(orderId);
-      
-      // Update status in Firestore
       await updateDeliveryStatus(orderId, newStatus);
       
-      // Notify student about status change
       if (order && order.userId) {
         await notifyOrderStatus(order.userId, {
           id: orderId
@@ -132,9 +129,6 @@ const DeliveryDashboard = () => {
       }
 
       toast.success(`Order status updated to ${newStatus.replace('_', ' ')}`);
-      
-      // Immediately refresh dashboard data
-      await fetchDashboardData();
       
     } catch (error) {
       console.error('Error updating status:', error);
@@ -160,18 +154,14 @@ const DeliveryDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Notification Bell */}
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Delivery Dashboard</h1>
         <div className="flex items-center space-x-4">
-          <DeliveryNotifications onOrderComplete={fetchDashboardData} />
-          <button
-            onClick={fetchDashboardData}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-            title="Refresh"
-          >
-            <ArrowPathIcon className="h-5 w-5 text-gray-600" />
-          </button>
+          <DeliveryNotifications />
+          <div className="text-xs text-green-600 animate-pulse">
+            🔴 Live
+          </div>
         </div>
       </div>
 
@@ -226,7 +216,7 @@ const DeliveryDashboard = () => {
         </GlassCard>
       </div>
 
-      {/* Current Orders - Only shows active orders */}
+      {/* Current Orders */}
       <GlassCard className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Current Orders</h2>
@@ -234,12 +224,7 @@ const DeliveryDashboard = () => {
             <span className="text-sm text-gray-500">
               {stats.currentOrders.length} active orders
             </span>
-            <button
-              onClick={fetchDashboardData}
-              className="text-xs text-primary-600 hover:text-primary-700"
-            >
-              ↻ Refresh
-            </button>
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
           </div>
         </div>
 
@@ -268,13 +253,11 @@ const DeliveryDashboard = () => {
                       </span>
                     </div>
                     
-                    {/* Customer Name */}
                     <div className="flex items-center mt-2">
                       <UserIcon className="h-4 w-4 text-gray-400 mr-1" />
                       <p className="text-sm font-medium text-gray-700">{order.customerName}</p>
                     </div>
                     
-                    {/* Phone Number with Call Button */}
                     {order.customerPhone && (
                       <div className="flex items-center mt-1">
                         <PhoneIcon className="h-4 w-4 text-gray-400 mr-1" />
@@ -334,7 +317,7 @@ const DeliveryDashboard = () => {
                     {order.status === 'assigned' && (
                       <button
                         onClick={() => handleUpdateStatus(order.fullId, 'picked_up')}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
                       >
                         Picked Up
                       </button>
@@ -342,7 +325,7 @@ const DeliveryDashboard = () => {
                     {order.status === 'picked_up' && (
                       <button
                         onClick={() => handleUpdateStatus(order.fullId, 'out_for_delivery')}
-                        className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors"
+                        className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
                       >
                         Out for Delivery
                       </button>
@@ -350,7 +333,7 @@ const DeliveryDashboard = () => {
                     {order.status === 'out_for_delivery' && (
                       <button
                         onClick={() => handleUpdateStatus(order.fullId, 'delivered')}
-                        className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
                       >
                         Delivered
                       </button>
@@ -362,52 +345,53 @@ const DeliveryDashboard = () => {
           </div>
         )}
 
-        <div className="mt-4 text-center">
+        {/* Fixed: View All Orders Link - Points to correct route */}
+        <div className="mt-6 text-center">
           <Link
             to="/delivery/orders"
-            className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+            className="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-md hover:shadow-lg"
           >
+            <ClipboardDocumentListIcon className="h-5 w-5 mr-2" />
             View All Orders
-            <span className="ml-1">→</span>
+            <span className="ml-2">→</span>
           </Link>
         </div>
       </GlassCard>
 
-      {/* Quick Actions */}
-      <GlassCard className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+      {/* Quick Stats Link to Assigned Orders */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link
+          to="/delivery/orders?filter=assigned"
+          className="block p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-yellow-800">Assigned Orders</p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.pendingDeliveries}</p>
+            </div>
+            <div className="bg-yellow-500 p-3 rounded-full">
+              <ClipboardDocumentListIcon className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </Link>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button
-            onClick={fetchDashboardData}
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-          >
-            <ArrowPathIcon className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-            <span className="text-sm font-medium">Refresh</span>
-          </button>
-          <button
-            onClick={() => window.location.href = '/delivery/orders'}
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-          >
-            <ClipboardDocumentListIcon className="h-8 w-8 mx-auto mb-2 text-green-600" />
-            <span className="text-sm font-medium">All Orders</span>
-          </button>
-          <button
-            onClick={() => toast.success('Location shared')}
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-          >
-            <MapPinIcon className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-            <span className="text-sm font-medium">Share Location</span>
-          </button>
-          <button
-            onClick={() => toast.success('Status updated to Available')}
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-          >
-            <CheckCircleIcon className="h-8 w-8 mx-auto mb-2 text-green-600" />
-            <span className="text-sm font-medium">Mark Available</span>
-          </button>
-        </div>
-      </GlassCard>
+        <Link
+          to="/delivery/orders?filter=out_for_delivery"
+          className="block p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors border border-purple-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-purple-800">Out for Delivery</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {stats.currentOrders.filter(o => o.status === 'out_for_delivery').length}
+              </p>
+            </div>
+            <div className="bg-purple-500 p-3 rounded-full">
+              <MapPinIcon className="h-6 w-6 text-white" />
+            </div>
+          </div>
+        </Link>
+      </div>
     </div>
   );
 };

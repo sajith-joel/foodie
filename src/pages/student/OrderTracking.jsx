@@ -6,10 +6,10 @@ import GlassCard from '../../components/ui/GlassCard';
 import Button from '../../components/ui/Button';
 import { getOrderById } from '../../services/orderService';
 import { getOrderDelivery } from '../../services/deliveryService';
-import { 
-  CheckCircleIcon, 
-  ClockIcon, 
-  TruckIcon, 
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  TruckIcon,
   XCircleIcon,
   MapPinIcon,
   PhoneIcon,
@@ -35,6 +35,7 @@ const OrderTracking = () => {
     { key: 'delivered', label: 'Delivered', icon: CheckCircleIcon, color: 'green' },
   ];
 
+  // In OrderTracking.jsx, add this to handle delivery partner access
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -43,24 +44,31 @@ const OrderTracking = () => {
     loadOrderDetails();
   }, [orderId, user]);
 
+  // When loading order details, check if delivery partner has access
   const loadOrderDetails = async () => {
     setLoading(true);
     try {
       console.log('Fetching order details for ID:', orderId);
-      
-      // Fetch order from Firestore
+
       const orderData = await getOrderById(orderId);
       console.log('Order data:', orderData);
-      
+
       if (!orderData) {
         toast.error('Order not found');
-        navigate('/my-orders');
+        navigate('/delivery/orders');
         return;
       }
-      
+
+      // Check if this delivery partner is assigned to this order
+      if (role === 'delivery' && orderData.deliveryPartnerId !== user.uid) {
+        toast.error('You are not assigned to this order');
+        navigate('/delivery/orders');
+        return;
+      }
+
       setOrder(orderData);
-      
-      // Fetch delivery information if order is assigned
+
+      // Fetch delivery information
       if (orderData.deliveryBoy || orderData.deliveryPartnerId) {
         try {
           const deliveryData = await getOrderDelivery(orderId);
@@ -70,7 +78,7 @@ const OrderTracking = () => {
           console.log('No delivery info yet:', deliveryError);
         }
       }
-      
+
     } catch (error) {
       console.error('Error loading order details:', error);
       toast.error('Failed to load order details');
@@ -79,13 +87,14 @@ const OrderTracking = () => {
     }
   };
 
+
   const getCurrentStepIndex = () => {
     if (!order) return -1;
     return statusSteps.findIndex(step => step.key === order.status);
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'delivered': return 'text-green-600 bg-green-100';
       case 'cancelled': return 'text-red-600 bg-red-100';
       case 'out_for_delivery': return 'text-blue-600 bg-blue-100';
@@ -151,12 +160,12 @@ const OrderTracking = () => {
         {!isCancelled && (
           <GlassCard className="p-6">
             <h2 className="text-xl font-semibold mb-6">Order Progress</h2>
-            
+
             <div className="relative">
               {/* Progress Bar */}
               <div className="absolute top-5 left-0 w-full h-1 bg-gray-200">
                 {!isDelivered && currentStepIndex >= 0 && (
-                  <div 
+                  <div
                     className="h-full bg-primary-600 transition-all duration-500"
                     style={{ width: `${(currentStepIndex / (statusSteps.length - 2)) * 100}%` }}
                   />
@@ -167,7 +176,7 @@ const OrderTracking = () => {
               <div className="relative flex justify-between">
                 {statusSteps.map((step, index) => {
                   if (step.key === 'cancelled') return null;
-                  
+
                   const StepIcon = step.icon;
                   const isCompleted = index <= currentStepIndex && !isCancelled;
                   const isCurrent = index === currentStepIndex && !isCancelled;
@@ -214,7 +223,7 @@ const OrderTracking = () => {
         {(order.deliveryBoy || delivery) && !isCancelled && (
           <GlassCard className="p-6">
             <h2 className="text-xl font-semibold mb-4">Delivery Information</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
@@ -226,7 +235,7 @@ const OrderTracking = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 {order.deliveryBoy?.phone && (
                   <div className="flex items-start space-x-3">
                     <PhoneIcon className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -241,8 +250,8 @@ const OrderTracking = () => {
               <div className="bg-primary-50 p-4 rounded-lg">
                 <p className="text-sm text-primary-600 mb-2">Delivery Status</p>
                 <p className="text-lg font-bold text-primary-700">
-                  {order.status === 'out_for_delivery' ? 'On the way' : 
-                   order.status === 'delivered' ? 'Delivered' : 'Preparing'}
+                  {order.status === 'out_for_delivery' ? 'On the way' :
+                    order.status === 'delivered' ? 'Delivered' : 'Preparing'}
                 </p>
               </div>
             </div>
@@ -252,7 +261,7 @@ const OrderTracking = () => {
         {/* Order Details */}
         <GlassCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Order Details</h2>
-          
+
           <div className="space-y-4">
             {order.items && order.items.map((item, index) => (
               <div key={index} className="flex justify-between py-2 border-b last:border-0">
