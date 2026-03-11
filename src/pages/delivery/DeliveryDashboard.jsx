@@ -41,9 +41,9 @@ const DeliveryDashboard = () => {
     try {
       console.log('Fetching delivery dashboard data for partner:', user?.uid);
       
-      // Get assigned orders from Firestore
+      // Get all orders for this partner
       const assignedOrders = await getPartnerAssignedOrders(user?.uid);
-      console.log('Assigned orders:', assignedOrders);
+      console.log('All orders:', assignedOrders);
       
       // Get today's date range
       const today = new Date();
@@ -51,7 +51,7 @@ const DeliveryDashboard = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       
-      // Calculate stats from real orders
+      // Calculate stats
       const completedDeliveries = assignedOrders.filter(order => 
         order.status === 'delivered'
       ).length;
@@ -72,9 +72,12 @@ const DeliveryDashboard = () => {
       // Calculate earnings (₹50 per delivered order)
       const totalEarnings = completedDeliveries * 50;
 
-      // Format current orders for display (only non-delivered orders)
+      // Format current orders for display - ONLY non-delivered orders
       const currentOrders = assignedOrders
-        .filter(order => !['delivered', 'cancelled'].includes(order.status))
+        .filter(order => {
+          // Only show orders that are NOT delivered and NOT cancelled
+          return !['delivered', 'cancelled'].includes(order.status);
+        })
         .map(order => ({
           id: order.id?.slice(-6),
           fullId: order.id,
@@ -86,11 +89,14 @@ const DeliveryDashboard = () => {
             `${item.name} (${item.quantity}x)`
           ) || [],
           total: order.total,
-          estimatedTime: '15 mins',
-          distance: '0.5 km',
           status: order.status,
-          createdAt: order.createdAt
+          createdAt: order.createdAt,
+          assignedAt: order.assignedAt
         }));
+
+      console.log('Current orders (non-delivered):', currentOrders);
+      console.log('Today deliveries:', todayDeliveries);
+      console.log('Completed deliveries:', completedDeliveries);
 
       setStats({
         todayDeliveries,
@@ -112,9 +118,13 @@ const DeliveryDashboard = () => {
     try {
       console.log(`Updating order ${orderId} to ${newStatus}`);
       
+      // Get order details before update
       const order = await getOrderById(orderId);
+      
+      // Update status in Firestore
       await updateDeliveryStatus(orderId, newStatus);
       
+      // Notify student about status change
       if (order && order.userId) {
         await notifyOrderStatus(order.userId, {
           id: orderId
@@ -216,18 +226,28 @@ const DeliveryDashboard = () => {
         </GlassCard>
       </div>
 
-      {/* Current Orders */}
+      {/* Current Orders - Only shows active orders */}
       <GlassCard className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Current Orders</h2>
-          <span className="text-sm text-gray-500">
-            {stats.currentOrders.length} active orders
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">
+              {stats.currentOrders.length} active orders
+            </span>
+            <button
+              onClick={fetchDashboardData}
+              className="text-xs text-primary-600 hover:text-primary-700"
+            >
+              ↻ Refresh
+            </button>
+          </div>
         </div>
 
         {stats.currentOrders.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No active orders at the moment</p>
+          <div className="text-center py-12">
+            <CheckCircleIcon className="h-16 w-16 mx-auto text-green-500 mb-4" />
+            <p className="text-lg font-medium text-gray-700">All caught up!</p>
+            <p className="text-sm text-gray-500 mt-1">No active orders at the moment</p>
           </div>
         ) : (
           <div className="space-y-4">
