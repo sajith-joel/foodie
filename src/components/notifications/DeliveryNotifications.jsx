@@ -16,7 +16,6 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   useEffect(() => {
     if (!user || user.role !== 'delivery') return;
 
-    // Listen for new assignments and status updates
     const q = query(
       collection(db, 'notifications'),
       where('userId', '==', user.uid),
@@ -33,64 +32,55 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
         });
       });
 
-      // Filter out notifications for delivered orders
       const activeNotifications = newNotifications.filter(notif => {
-        // Keep assignment notifications
         if (notif.type === 'order_assigned') return true;
-        
-        // For status updates, only show if not delivered
         if (notif.type === 'order_status') {
           return notif.data?.status !== 'delivered';
         }
-        
         return false;
       });
 
       setNotifications(activeNotifications);
-      
-      // Calculate unread count
       const unread = activeNotifications.filter(n => !n.read).length;
       setUnreadCount(unread);
       
-      // Show toast for the latest unread assignment
       const latestUnread = activeNotifications.find(n => !n.read && n.type === 'order_assigned');
       if (latestUnread) {
         toast.custom((t) => (
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 cursor-pointer`}
+            } max-w-[90vw] sm:max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col sm:flex-row ring-1 ring-black ring-opacity-5 cursor-pointer mx-2 sm:mx-0`}
             onClick={() => {
               toast.dismiss(t.id);
               markAsRead(latestUnread.id);
-              // Navigate directly to the specific order
               navigate(`/delivery/orders/${latestUnread.data?.orderId}`);
             }}
           >
-            <div className="flex-1 w-0 p-4">
+            <div className="flex-1 w-0 p-3 sm:p-4">
               <div className="flex items-start">
                 <div className="flex-shrink-0 pt-0.5">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 text-lg">🚚</span>
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 text-base sm:text-lg">🚚</span>
                   </div>
                 </div>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-gray-900">
+                <div className="ml-2 sm:ml-3 flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-gray-900">
                     {latestUnread.title}
                   </p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500 line-clamp-2">
                     {latestUnread.body}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex border-l border-gray-200">
+            <div className="flex border-t sm:border-t-0 sm:border-l border-gray-200">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toast.dismiss(t.id);
                 }}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-primary-600 hover:text-primary-500 focus:outline-none"
+                className="w-full sm:w-auto border border-transparent rounded-b-lg sm:rounded-none sm:rounded-r-lg p-3 sm:p-4 flex items-center justify-center text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-500 focus:outline-none touch-manipulation"
               >
                 Close
               </button>
@@ -128,7 +118,6 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
 
   const handleViewOrder = (e, notification) => {
     e.stopPropagation();
-    // Navigate directly to the specific order
     navigate(`/delivery/orders/${notification.data?.orderId}`);
     if (!notification.read) {
       markAsRead(notification.id);
@@ -139,17 +128,29 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
     }
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.delivery-notification-container')) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
   if (!user || user.role !== 'delivery') return null;
 
   return (
-    <div className="relative">
+    <div className="relative delivery-notification-container">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 hover:bg-gray-100 rounded-lg"
+        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+        aria-label="Notifications"
       >
-        <BellIcon className="h-6 w-6 text-gray-600" />
+        <BellIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] sm:text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -157,75 +158,101 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
 
       {/* Notifications Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border z-50 max-h-96 overflow-y-auto">
-          <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                Mark all as read
-              </button>
-            )}
-          </div>
-
-          {notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <BellIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>No notifications</p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
+        <>
+          {/* Mobile Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          <div className={`
+            fixed sm:absolute z-50 
+            bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
+            w-full sm:w-80 md:w-96
+            bg-white rounded-t-xl sm:rounded-lg shadow-xl border
+            max-h-[80vh] sm:max-h-96
+            flex flex-col
+            animate-slide-up sm:animate-none
+          `}>
+            {/* Header */}
+            <div className="p-3 sm:p-4 border-b flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation"
                 >
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      {notification.type === 'order_assigned' ? (
-                        <span className="text-xl">🚚</span>
-                      ) : (
-                        <span className="text-xl">📦</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {notification.body}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {new Date(notification.createdAt).toLocaleString()}
-                      </p>
-                      
-                      {/* View Order Button - Now navigates to specific order */}
-                      <button
-                        onClick={(e) => handleViewOrder(e, notification)}
-                        className="mt-2 text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
-                      >
-                        View Order
-                      </button>
+                  Mark all as read
+                </button>
+              )}
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg"
+                aria-label="Close"
+              >
+                <span className="text-lg">✕</span>
+              </button>
+            </div>
+
+            {/* Notifications List */}
+            <div className="overflow-y-auto flex-1">
+              {notifications.length === 0 ? (
+                <div className="p-6 sm:p-8 text-center text-gray-500">
+                  <BellIcon className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-3 text-gray-300" />
+                  <p className="text-xs sm:text-sm">No notifications</p>
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`
+                      p-3 sm:p-4 border-b hover:bg-gray-50 transition-colors
+                      ${!notification.read ? 'bg-blue-50/50' : ''}
+                    `}
+                  >
+                    <div className="flex items-start space-x-2 sm:space-x-3">
+                      <div className="flex-shrink-0">
+                        {notification.type === 'order_assigned' ? (
+                          <span className="text-lg sm:text-xl">🚚</span>
+                        ) : (
+                          <span className="text-lg sm:text-xl">📦</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2">
+                          {notification.title}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">
+                          {notification.body}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-1 sm:mt-2">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
+                        
+                        <button
+                          onClick={(e) => handleViewOrder(e, notification)}
+                          className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                        >
+                          View Order
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-          )}
 
-          <div className="p-3 border-t text-center sticky bottom-0 bg-white">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Close
-            </button>
+            {/* Mobile Close Button */}
+            <div className="p-3 border-t text-center sm:hidden flex-shrink-0 bg-white">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

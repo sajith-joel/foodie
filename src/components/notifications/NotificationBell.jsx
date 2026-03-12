@@ -18,7 +18,6 @@ const NotificationBell = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Set up real-time notification listener
     const unsubscribe = getUserNotifications(user.uid, (newNotifications) => {
       setNotifications(newNotifications);
       setUnreadCount(newNotifications.filter(n => !n.read).length);
@@ -29,7 +28,6 @@ const NotificationBell = () => {
 
   const markAsRead = async (notificationId) => {
     await markNotificationAsRead(notificationId);
-    // No need to update state here as the real-time listener will update
   };
 
   const markAllAsRead = async () => {
@@ -40,9 +38,7 @@ const NotificationBell = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    // Navigate based on notification type and user role
     handleNavigation(notification);
-    
     if (!notification.read) {
       markAsRead(notification.id);
     }
@@ -52,7 +48,6 @@ const NotificationBell = () => {
   const handleViewOrder = (e, notification) => {
     e.stopPropagation();
     handleNavigation(notification);
-    
     if (!notification.read) {
       markAsRead(notification.id);
     }
@@ -61,32 +56,15 @@ const NotificationBell = () => {
   const handleNavigation = (notification) => {
     const { type, data } = notification;
     
-    // Admin navigation
     if (role === 'admin') {
       if (type === 'new_order' || type === 'order_status') {
         navigate('/admin/orders');
       }
-    }
-    
-    // Delivery partner navigation
-    else if (role === 'delivery') {
+    } else if (role === 'delivery') {
       if (type === 'order_assigned') {
-        if (data?.orderId) {
-          navigate(`/delivery/orders/${data.orderId}`);
-        } else {
-          navigate('/delivery/orders');
-        }
-      } else if (type === 'order_status') {
-        if (data?.orderId) {
-          navigate(`/delivery/orders/${data.orderId}`);
-        } else {
-          navigate('/delivery/orders');
-        }
+        navigate(data?.orderId ? `/delivery/orders/${data.orderId}` : '/delivery/orders');
       }
-    }
-    
-    // Student navigation
-    else if (role === 'student') {
+    } else if (role === 'student') {
       if (type === 'order_status' && data?.orderId) {
         navigate(`/order-tracking/${data.orderId}`);
       }
@@ -106,127 +84,158 @@ const NotificationBell = () => {
     }
   };
 
-  const getButtonText = (notification) => {
-    const { type } = notification;
-    if (role === 'admin' && (type === 'new_order' || type === 'order_status')) {
-      return 'View Orders';
-    }
-    if (role === 'delivery' && type === 'order_assigned') {
-      return 'View Order';
-    }
-    if (role === 'student' && type === 'order_status') {
-      return 'Track Order';
-    }
-    return 'View';
-  };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.notification-container')) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   return (
-    <div className="relative">
+    <div className="relative notification-container">
+      {/* Bell Button - Mobile Optimized */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        title="Notifications"
+        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+        aria-label="Notifications"
       >
         {unreadCount > 0 ? (
           <>
-            <BellSolidIcon className="h-6 w-6 text-primary-600" />
-            <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse">
+            <BellSolidIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
+            <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] sm:text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center animate-pulse">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           </>
         ) : (
-          <BellIcon className="h-6 w-6 text-gray-600" />
+          <BellIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
         )}
       </button>
 
-      {/* Notifications Dropdown */}
+      {/* Notifications Dropdown - Fully Responsive */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border z-50 max-h-[32rem] flex flex-col">
-          <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                Mark all as read
-              </button>
-            )}
-          </div>
-
-          <div className="overflow-y-auto flex-1">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <BellIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p>No notifications yet</p>
-              </div>
-            ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.read ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
+        <>
+          {/* Backdrop for mobile */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Dropdown Panel */}
+          <div className={`
+            fixed sm:absolute z-50 
+            bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
+            w-full sm:w-80 md:w-96
+            bg-white rounded-t-xl sm:rounded-lg shadow-xl border
+            max-h-[80vh] sm:max-h-[32rem] 
+            flex flex-col
+            animate-slide-up sm:animate-none
+          `}>
+            {/* Header - Sticky */}
+            <div className="p-3 sm:p-4 border-b flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation"
                 >
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <span className="text-xl">{getNotificationIcon(notification)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1 break-words">
-                        {notification.body}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                      </p>
+                  Mark all as read
+                </button>
+              )}
+              {/* Close button for mobile */}
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg"
+                aria-label="Close"
+              >
+                <span className="text-lg">✕</span>
+              </button>
+            </div>
+
+            {/* Notifications List - Scrollable */}
+            <div className="overflow-y-auto flex-1">
+              {notifications.length === 0 ? (
+                <div className="p-6 sm:p-8 text-center text-gray-500">
+                  <BellIcon className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-3 text-gray-300" />
+                  <p className="text-xs sm:text-sm">No notifications yet</p>
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`
+                      p-3 sm:p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors
+                      ${!notification.read ? 'bg-blue-50/50' : ''}
+                      touch-manipulation
+                    `}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start space-x-2 sm:space-x-3">
+                      {/* Icon */}
+                      <div className="flex-shrink-0">
+                        <span className="text-lg sm:text-xl">{getNotificationIcon(notification)}</span>
+                      </div>
                       
-                      {/* View Order Button - Shows for all relevant notifications */}
-                      {(role === 'admin' && (notification.type === 'new_order' || notification.type === 'order_status')) && (
-                        <button
-                          onClick={(e) => handleViewOrder(e, notification)}
-                          className="mt-2 text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
-                        >
-                          View Orders
-                        </button>
-                      )}
-                      
-                      {role === 'delivery' && notification.type === 'order_assigned' && (
-                        <button
-                          onClick={(e) => handleViewOrder(e, notification)}
-                          className="mt-2 text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
-                        >
-                          View Order
-                        </button>
-                      )}
-                      
-                      {role === 'student' && notification.type === 'order_status' && (
-                        <button
-                          onClick={(e) => handleViewOrder(e, notification)}
-                          className="mt-2 text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
-                        >
-                          Track Order
-                        </button>
-                      )}
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2">
+                          {notification.title}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">
+                          {notification.body}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-1 sm:mt-2">
+                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                        </p>
+                        
+                        {/* Action Button - Responsive */}
+                        {(role === 'admin' && (notification.type === 'new_order' || notification.type === 'order_status')) && (
+                          <button
+                            onClick={(e) => handleViewOrder(e, notification)}
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                          >
+                            View Orders
+                          </button>
+                        )}
+                        
+                        {role === 'delivery' && notification.type === 'order_assigned' && (
+                          <button
+                            onClick={(e) => handleViewOrder(e, notification)}
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                          >
+                            View Order
+                          </button>
+                        )}
+                        
+                        {role === 'student' && notification.type === 'order_status' && (
+                          <button
+                            onClick={(e) => handleViewOrder(e, notification)}
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                          >
+                            Track Order
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </div>
 
-          <div className="p-3 border-t text-center flex-shrink-0">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Close
-            </button>
+            {/* Footer for mobile - Close button */}
+            <div className="p-3 border-t text-center sm:hidden flex-shrink-0 bg-white">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
