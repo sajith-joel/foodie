@@ -282,16 +282,16 @@ const OrderTracking = () => {
             <div className="pt-4 space-y-2">
               <div className="flex justify-between text-xs sm:text-sm">
                 <span>Subtotal</span>
-                <span>₹{order.subtotal || order.total - 30 - (order.total * 0.05)}</span>
+                <span>₹{order.subtotal || order.total - 0 - (order.total * 0)}</span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm">
+              {/* <div className="flex justify-between text-xs sm:text-sm">
                 <span>Delivery Fee</span>
-                <span>₹{order.deliveryFee || 30}</span>
+                <span>₹{order.deliveryFee || 0}</span>
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
                 <span>Tax (5%)</span>
-                <span>₹{order.tax || (order.total * 0.05).toFixed(2)}</span>
-              </div>
+                <span>₹{order.tax || (order.total * 0.0).toFixed(2)}</span>
+              </div> */}
               <div className="flex justify-between font-bold text-sm sm:text-lg pt-2 border-t">
                 <span>Total</span>
                 <span className="text-primary-600">₹{order.total}</span>
