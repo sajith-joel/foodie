@@ -259,7 +259,7 @@ const DeliveryOrderView = () => {
                 <span className="text-sm sm:text-base font-medium">₹{item.price * item.quantity}</span>
               </div>
             ))}
-
+{/* 
             <div className="pt-4 space-y-2">
               <div className="flex justify-between text-xs sm:text-sm">
                 <span>Subtotal</span>
@@ -277,7 +277,7 @@ const DeliveryOrderView = () => {
                 <span>Total</span>
                 <span className="text-primary-600">₹{order.total}</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </GlassCard>
 
