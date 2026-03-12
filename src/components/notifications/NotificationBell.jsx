@@ -54,22 +54,28 @@ const NotificationBell = () => {
   };
 
   const handleNavigation = (notification) => {
-    const { type, data } = notification;
-    
-    if (role === 'admin') {
-      if (type === 'new_order' || type === 'order_status') {
-        navigate('/admin/orders');
-      }
-    } else if (role === 'delivery') {
-      if (type === 'order_assigned') {
-        navigate(data?.orderId ? `/delivery/orders/${data.orderId}` : '/delivery/orders');
-      }
-    } else if (role === 'student') {
-      if (type === 'order_status' && data?.orderId) {
-        navigate(`/order-tracking/${data.orderId}`);
+  const { type, data } = notification;
+  
+  if (role === 'admin') {
+    if (type === 'new_order' || type === 'order_status') {
+      navigate('/admin/orders');
+    }
+  } else if (role === 'delivery') {
+    if (type === 'order_assigned') {
+      if (data?.orderId) {
+        navigate(`/delivery/orders/${data.orderId}`);
+      } else {
+        navigate('/delivery/orders');
       }
     }
-  };
+  } else if (role === 'student') {
+    if (type === 'order_status' && data?.orderId) {
+      navigate(`/order-tracking/${data.orderId}`);
+    }
+  }
+  
+  setIsOpen(false);
+};
 
   const getNotificationIcon = (notification) => {
     const { type } = notification;

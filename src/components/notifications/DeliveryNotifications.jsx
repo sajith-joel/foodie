@@ -43,18 +43,21 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
       setNotifications(activeNotifications);
       const unread = activeNotifications.filter(n => !n.read).length;
       setUnreadCount(unread);
-      
+
       const latestUnread = activeNotifications.find(n => !n.read && n.type === 'order_assigned');
       if (latestUnread) {
         toast.custom((t) => (
           <div
-            className={`${
-              t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-[90vw] sm:max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col sm:flex-row ring-1 ring-black ring-opacity-5 cursor-pointer mx-2 sm:mx-0`}
+            className={`${t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-[90vw] sm:max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col sm:flex-row ring-1 ring-black ring-opacity-5 cursor-pointer mx-2 sm:mx-0`}
             onClick={() => {
               toast.dismiss(t.id);
               markAsRead(latestUnread.id);
-              navigate(`/delivery/orders/${latestUnread.data?.orderId}`);
+              if (latestUnread.data?.orderId) {
+                navigate(`/delivery/orders/${latestUnread.data.orderId}`);
+              } else {
+                navigate('/delivery/orders');
+              }
             }}
           >
             <div className="flex-1 w-0 p-3 sm:p-4">
@@ -118,7 +121,11 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
 
   const handleViewOrder = (e, notification) => {
     e.stopPropagation();
-    navigate(`/delivery/orders/${notification.data?.orderId}`);
+    if (notification.data?.orderId) {
+      navigate(`/delivery/orders/${notification.data.orderId}`);
+    } else {
+      navigate('/delivery/orders');
+    }
     if (!notification.read) {
       markAsRead(notification.id);
     }
@@ -160,11 +167,11 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
       {isOpen && (
         <>
           {/* Mobile Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
             onClick={() => setIsOpen(false)}
           />
-          
+
           <div className={`
             fixed sm:absolute z-50 
             bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
@@ -185,7 +192,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
                   Mark all as read
                 </button>
               )}
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg"
                 aria-label="Close"
@@ -228,7 +235,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
                         <p className="text-[10px] sm:text-xs text-gray-400 mt-1 sm:mt-2">
                           {new Date(notification.createdAt).toLocaleString()}
                         </p>
-                        
+
                         <button
                           onClick={(e) => handleViewOrder(e, notification)}
                           className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
