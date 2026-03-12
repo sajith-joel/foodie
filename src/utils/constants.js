@@ -60,8 +60,8 @@ export const APP_CONFIG = {
   COMPANY_NAME: 'Campus Food Delivery',
   SUPPORT_EMAIL: 'support@campusfood.com',
   SUPPORT_PHONE: '+91 12345 67890',
-  DELIVERY_FEE: 30,
-  TAX_RATE: 0.05,
+  DELIVERY_FEE: 0,
+  TAX_RATE: 0.0,
   MAX_ORDER_QUANTITY: 10,
   MIN_ORDER_AMOUNT: 50
 };

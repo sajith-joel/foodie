@@ -92,15 +92,18 @@ const NotificationBell = () => {
       if (type === 'new_order' || type === 'order_status') {
         navigate('/admin/orders');
       }
-    } else if (role === 'delivery') {
+    } 
+    else if (role === 'delivery') {
       if (type === 'order_assigned') {
         if (data?.orderId) {
-          navigate(`/delivery/orders/${data.orderId}`);
+          // ✅ Navigate to delivery order view page, not tracking page
+          navigate(`/delivery/order/${data.orderId}`);
         } else {
           navigate('/delivery/orders');
         }
       }
-    } else if (role === 'student') {
+    } 
+    else if (role === 'student') {
       if (type === 'order_status' && data?.orderId) {
         navigate(`/order-tracking/${data.orderId}`);
       }

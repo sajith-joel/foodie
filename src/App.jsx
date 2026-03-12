@@ -29,6 +29,8 @@ import UserProfile from './components/profile/UserProfile';
 import UserSettings from './components/profile/UserSettings';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ManageSpinWheel from './pages/admin/ManageSpinWheel';
+import DeliveryOrderView from './pages/delivery/DeliveryOrderView';
+
 
 // Layout component
 const Layout = ({ children }) => {
@@ -108,31 +110,31 @@ function AppRoutes() {
           <AdminDashboard />
         </ProtectedRoute>
       } />
-      
+
       <Route path="/admin/analytics" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminAnalytics />
         </ProtectedRoute>
       } />
-      
+
       <Route path="/admin/menu" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageMenu />
         </ProtectedRoute>
       } />
-      
+
       <Route path="/admin/delivery-boys" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageDeliveryBoys />
         </ProtectedRoute>
       } />
-      
+
       <Route path="/admin/orders" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <OrdersManagement />
         </ProtectedRoute>
       } />
-      
+
       {/* Admin Spin Wheel Management Route */}
       <Route path="/admin/spin-wheel" element={
         <ProtectedRoute allowedRoles={['admin']}>
@@ -144,6 +146,11 @@ function AppRoutes() {
       <Route path="/delivery" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <DeliveryDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/delivery/order/:orderId" element={
+        <ProtectedRoute allowedRoles={['delivery']}>
+          <DeliveryOrderView />
         </ProtectedRoute>
       } />
 

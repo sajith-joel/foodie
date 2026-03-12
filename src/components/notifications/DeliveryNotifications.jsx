@@ -57,7 +57,8 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
               toast.dismiss(t.id);
               markAsRead(latestUnread.id);
               if (latestUnread.data?.orderId) {
-                navigate(`/delivery/orders/${latestUnread.data.orderId}`);
+                // ✅ Navigate to delivery order view page
+                navigate(`/delivery/order/${latestUnread.data.orderId}`);
               } else {
                 navigate('/delivery/orders');
               }
@@ -154,7 +155,8 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   const handleViewOrder = (e, notification) => {
     e.stopPropagation();
     if (notification.data?.orderId) {
-      navigate(`/delivery/orders/${notification.data.orderId}`);
+      // ✅ Navigate to delivery order view page
+      navigate(`/delivery/order/${notification.data.orderId}`);
     } else {
       navigate('/delivery/orders');
     }
