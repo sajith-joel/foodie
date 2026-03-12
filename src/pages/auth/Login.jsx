@@ -103,7 +103,7 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-gray-200">
+          {/* <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-gray-200">
             <div className="bg-white bg-opacity-20 p-2 rounded">
               <p className="font-semibold">Student</p>
               <p>student@example.com</p>
@@ -114,7 +114,7 @@ const Login = () => {
               <p>admin@example.com</p>
               <p>password: admin123</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </GlassCard>
     </div>
