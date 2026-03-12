@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useRole } from '../../hooks/useRole';
 import GlassCard from '../../components/ui/GlassCard';
 import Button from '../../components/ui/Button';
-import { fetchOrderById } from '../../services/orderService';
+import { getOrderById } from '../../services/orderService';
 import { getOrderDelivery } from '../../services/deliveryService';
 import { 
   CheckCircleIcon, 
@@ -48,7 +48,7 @@ const OrderTracking = () => {
     try {
       console.log('Fetching order details for ID:', orderId);
       
-      const orderData = await fetchOrderById(orderId);
+      const orderData = await getOrderById(orderId);
       console.log('Order data:', orderData);
       
       if (!orderData) {

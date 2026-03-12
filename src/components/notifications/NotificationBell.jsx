@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useRole } from '../../hooks/useRole';
@@ -14,6 +14,8 @@ const NotificationBell = () => {
   const { user } = useAuth();
   const { role } = useRole();
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -25,6 +27,35 @@ const NotificationBell = () => {
 
     return () => unsubscribe();
   }, [user]);
+
+  // Auto-close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isOpen && 
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target) &&
+        !buttonRef.current?.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Auto-close on escape key
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
 
   const markAsRead = async (notificationId) => {
     await markNotificationAsRead(notificationId);
@@ -51,31 +82,30 @@ const NotificationBell = () => {
     if (!notification.read) {
       markAsRead(notification.id);
     }
+    setIsOpen(false);
   };
 
   const handleNavigation = (notification) => {
-  const { type, data } = notification;
-  
-  if (role === 'admin') {
-    if (type === 'new_order' || type === 'order_status') {
-      navigate('/admin/orders');
-    }
-  } else if (role === 'delivery') {
-    if (type === 'order_assigned') {
-      if (data?.orderId) {
-        navigate(`/delivery/orders/${data.orderId}`);
-      } else {
-        navigate('/delivery/orders');
+    const { type, data } = notification;
+    
+    if (role === 'admin') {
+      if (type === 'new_order' || type === 'order_status') {
+        navigate('/admin/orders');
+      }
+    } else if (role === 'delivery') {
+      if (type === 'order_assigned') {
+        if (data?.orderId) {
+          navigate(`/delivery/orders/${data.orderId}`);
+        } else {
+          navigate('/delivery/orders');
+        }
+      }
+    } else if (role === 'student') {
+      if (type === 'order_status' && data?.orderId) {
+        navigate(`/order-tracking/${data.orderId}`);
       }
     }
-  } else if (role === 'student') {
-    if (type === 'order_status' && data?.orderId) {
-      navigate(`/order-tracking/${data.orderId}`);
-    }
-  }
-  
-  setIsOpen(false);
-};
+  };
 
   const getNotificationIcon = (notification) => {
     const { type } = notification;
@@ -90,24 +120,15 @@ const NotificationBell = () => {
     }
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest('.notification-container')) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
   return (
     <div className="relative notification-container">
-      {/* Bell Button - Mobile Optimized */}
+      {/* Bell Button */}
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary-500"
         aria-label="Notifications"
+        aria-expanded={isOpen}
       >
         {unreadCount > 0 ? (
           <>
@@ -121,32 +142,36 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {/* Notifications Dropdown - Fully Responsive */}
+      {/* Notifications Dropdown */}
       {isOpen && (
         <>
-          {/* Backdrop for mobile */}
+          {/* Backdrop for mobile - closes when tapped */}
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
             onClick={() => setIsOpen(false)}
+            aria-hidden="true"
           />
           
           {/* Dropdown Panel */}
-          <div className={`
-            fixed sm:absolute z-50 
-            bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
-            w-full sm:w-80 md:w-96
-            bg-white rounded-t-xl sm:rounded-lg shadow-xl border
-            max-h-[80vh] sm:max-h-[32rem] 
-            flex flex-col
-            animate-slide-up sm:animate-none
-          `}>
-            {/* Header - Sticky */}
-            <div className="p-3 sm:p-4 border-b flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
+          <div 
+            ref={dropdownRef}
+            className={`
+              fixed sm:absolute z-50 
+              bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
+              w-full sm:w-80 md:w-96
+              bg-white rounded-t-xl sm:rounded-lg shadow-xl border border-gray-200
+              max-h-[80vh] sm:max-h-[32rem] 
+              flex flex-col
+              animate-slide-up sm:animate-none
+            `}
+          >
+            {/* Header */}
+            <div className="p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation"
+                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation rounded hover:bg-primary-50 transition-colors"
                 >
                   Mark all as read
                 </button>
@@ -154,14 +179,14 @@ const NotificationBell = () => {
               {/* Close button for mobile */}
               <button 
                 onClick={() => setIsOpen(false)}
-                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg"
+                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg touch-manipulation"
                 aria-label="Close"
               >
                 <span className="text-lg">✕</span>
               </button>
             </div>
 
-            {/* Notifications List - Scrollable */}
+            {/* Notifications List */}
             <div className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
                 <div className="p-6 sm:p-8 text-center text-gray-500">
@@ -173,7 +198,7 @@ const NotificationBell = () => {
                   <div
                     key={notification.id}
                     className={`
-                      p-3 sm:p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors
+                      p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors
                       ${!notification.read ? 'bg-blue-50/50' : ''}
                       touch-manipulation
                     `}
@@ -197,11 +222,11 @@ const NotificationBell = () => {
                           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                         </p>
                         
-                        {/* Action Button - Responsive */}
+                        {/* Action Button */}
                         {(role === 'admin' && (notification.type === 'new_order' || notification.type === 'order_status')) && (
                           <button
                             onClick={(e) => handleViewOrder(e, notification)}
-                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto transition-colors"
                           >
                             View Orders
                           </button>
@@ -210,7 +235,7 @@ const NotificationBell = () => {
                         {role === 'delivery' && notification.type === 'order_assigned' && (
                           <button
                             onClick={(e) => handleViewOrder(e, notification)}
-                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto transition-colors"
                           >
                             View Order
                           </button>
@@ -219,7 +244,7 @@ const NotificationBell = () => {
                         {role === 'student' && notification.type === 'order_status' && (
                           <button
                             onClick={(e) => handleViewOrder(e, notification)}
-                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                            className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto transition-colors"
                           >
                             Track Order
                           </button>
@@ -231,11 +256,11 @@ const NotificationBell = () => {
               )}
             </div>
 
-            {/* Footer for mobile - Close button */}
-            <div className="p-3 border-t text-center sm:hidden flex-shrink-0 bg-white">
+            {/* Footer for mobile */}
+            <div className="p-3 border-t border-gray-200 text-center sm:hidden flex-shrink-0 bg-white">
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation"
+                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation rounded hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>

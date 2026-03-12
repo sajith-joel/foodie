@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
@@ -12,6 +12,8 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     if (!user || user.role !== 'delivery') return;
@@ -43,13 +45,14 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
       setNotifications(activeNotifications);
       const unread = activeNotifications.filter(n => !n.read).length;
       setUnreadCount(unread);
-
+      
       const latestUnread = activeNotifications.find(n => !n.read && n.type === 'order_assigned');
       if (latestUnread) {
         toast.custom((t) => (
           <div
-            className={`${t.visible ? 'animate-enter' : 'animate-leave'
-              } max-w-[90vw] sm:max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col sm:flex-row ring-1 ring-black ring-opacity-5 cursor-pointer mx-2 sm:mx-0`}
+            className={`${
+              t.visible ? 'animate-enter' : 'animate-leave'
+            } max-w-[90vw] sm:max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col sm:flex-row ring-1 ring-black ring-opacity-5 cursor-pointer mx-2 sm:mx-0`}
             onClick={() => {
               toast.dismiss(t.id);
               markAsRead(latestUnread.id);
@@ -58,6 +61,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
               } else {
                 navigate('/delivery/orders');
               }
+              setIsOpen(false);
             }}
           >
             <div className="flex-1 w-0 p-3 sm:p-4">
@@ -99,6 +103,35 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
     return () => unsubscribe();
   }, [user, navigate]);
 
+  // Auto-close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isOpen && 
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target) &&
+        !buttonRef.current?.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  // Auto-close on escape key
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
   const markAsRead = async (notificationId) => {
     try {
       const notifRef = doc(db, 'notifications', notificationId);
@@ -112,11 +145,10 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
   };
 
   const markAllAsRead = async () => {
-    notifications.forEach(async (notification) => {
-      if (!notification.read) {
-        await markAsRead(notification.id);
-      }
-    });
+    const promises = notifications
+      .filter(n => !n.read)
+      .map(n => markAsRead(n.id));
+    await Promise.all(promises);
   };
 
   const handleViewOrder = (e, notification) => {
@@ -135,25 +167,16 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
     }
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest('.delivery-notification-container')) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
   if (!user || user.role !== 'delivery') return null;
 
   return (
     <div className="relative delivery-notification-container">
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg touch-manipulation"
+        className="relative p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary-500"
         aria-label="Notifications"
+        aria-expanded={isOpen}
       >
         <BellIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
         {unreadCount > 0 && (
@@ -167,34 +190,38 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
       {isOpen && (
         <>
           {/* Mobile Backdrop */}
-          <div
+          <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
             onClick={() => setIsOpen(false)}
+            aria-hidden="true"
           />
-
-          <div className={`
-            fixed sm:absolute z-50 
-            bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
-            w-full sm:w-80 md:w-96
-            bg-white rounded-t-xl sm:rounded-lg shadow-xl border
-            max-h-[80vh] sm:max-h-96
-            flex flex-col
-            animate-slide-up sm:animate-none
-          `}>
+          
+          <div 
+            ref={dropdownRef}
+            className={`
+              fixed sm:absolute z-50 
+              bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-0 sm:mt-2
+              w-full sm:w-80 md:w-96
+              bg-white rounded-t-xl sm:rounded-lg shadow-xl border border-gray-200
+              max-h-[80vh] sm:max-h-96
+              flex flex-col
+              animate-slide-up sm:animate-none
+            `}
+          >
             {/* Header */}
-            <div className="p-3 sm:p-4 border-b flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
+            <div className="p-3 sm:p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0 bg-white rounded-t-xl sm:rounded-t-lg">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation"
+                  className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 px-2 py-1 touch-manipulation rounded hover:bg-primary-50 transition-colors"
                 >
                   Mark all as read
                 </button>
               )}
-              <button
+              <button 
                 onClick={() => setIsOpen(false)}
-                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg"
+                className="sm:hidden p-1.5 hover:bg-gray-100 rounded-lg touch-manipulation"
                 aria-label="Close"
               >
                 <span className="text-lg">✕</span>
@@ -213,7 +240,7 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
                   <div
                     key={notification.id}
                     className={`
-                      p-3 sm:p-4 border-b hover:bg-gray-50 transition-colors
+                      p-3 sm:p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors
                       ${!notification.read ? 'bg-blue-50/50' : ''}
                     `}
                   >
@@ -235,10 +262,10 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
                         <p className="text-[10px] sm:text-xs text-gray-400 mt-1 sm:mt-2">
                           {new Date(notification.createdAt).toLocaleString()}
                         </p>
-
+                        
                         <button
                           onClick={(e) => handleViewOrder(e, notification)}
-                          className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto"
+                          className="mt-2 text-xs bg-primary-600 text-white px-2 sm:px-3 py-1.5 sm:py-1 rounded hover:bg-primary-700 touch-manipulation w-full sm:w-auto transition-colors"
                         >
                           View Order
                         </button>
@@ -250,10 +277,10 @@ const DeliveryNotifications = ({ onOrderComplete }) => {
             </div>
 
             {/* Mobile Close Button */}
-            <div className="p-3 border-t text-center sm:hidden flex-shrink-0 bg-white">
+            <div className="p-3 border-t border-gray-200 text-center sm:hidden flex-shrink-0 bg-white">
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation"
+                className="text-sm text-gray-500 hover:text-gray-700 py-2 w-full touch-manipulation rounded hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>
