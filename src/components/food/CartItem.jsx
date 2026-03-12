@@ -1,6 +1,8 @@
 import { MinusIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
+  const hasDiscount = item.discountApplied !== null;
+
   return (
     <div className="flex items-center space-x-4 py-4 border-b last:border-0">
       <img
@@ -10,8 +12,25 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
       />
 
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-800">{item.name}</h3>
-        <p className="text-sm text-gray-600">₹{item.price} each</p>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800">{item.name}</h3>
+          {hasDiscount && (
+            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">
+              {item.discountApplied.label}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center mt-1">
+          {hasDiscount ? (
+            <>
+              <span className="text-sm text-gray-400 line-through mr-2">₹{item.originalPrice}</span>
+              <span className="text-sm font-bold text-green-600">₹{item.price}</span>
+            </>
+          ) : (
+            <span className="text-sm text-gray-600">₹{item.price} each</span>
+          )}
+        </div>
         
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center space-x-2">

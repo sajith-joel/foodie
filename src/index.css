@@ -3,8 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    @apply box-border;
+  }
+  
+  html {
+    @apply overflow-x-hidden;
+  }
+  
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 text-gray-900 antialiased overflow-x-hidden;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
@@ -15,14 +23,84 @@
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium;
+    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors duration-200 font-medium text-sm sm:text-base;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium;
+    @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm sm:text-base;
   }
   
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200 text-sm sm:text-base;
   }
+
+  /* Mobile responsive table */
+  .responsive-table {
+    @apply w-full overflow-x-auto -mx-4 sm:mx-0;
+  }
+
+  .responsive-table table {
+    @apply min-w-[800px] sm:min-w-full;
+  }
+
+  /* Mobile card grid */
+  .card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6;
+  }
+
+  /* Mobile padding adjustments */
+  .mobile-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Hide on mobile / show on desktop */
+  .mobile-hidden {
+    @apply hidden sm:block;
+  }
+
+  .desktop-hidden {
+    @apply block sm:hidden;
+  }
+
+  /* Mobile menu button */
+  .mobile-menu-btn {
+    @apply fixed bottom-4 right-4 z-50 sm:hidden bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-colors;
+  }
+
+  /* Custom class for removing tap highlight on mobile */
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 640px) {
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  .container-custom {
+    @apply px-3;
+  }
+}
+
+/* Touch-friendly buttons - using standard CSS */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better touch scrolling */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }

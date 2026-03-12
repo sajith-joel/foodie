@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { RoleProvider } from './context/RoleContext';
+import { DiscountProvider } from './context/DiscountContext'; // ✅ Import DiscountProvider
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
@@ -26,6 +27,8 @@ import AssignedOrders from './pages/delivery/AssignedOrders';
 import NotFound from './pages/NotFound';
 import UserProfile from './components/profile/UserProfile';
 import UserSettings from './components/profile/UserSettings';
+import StudentDashboard from './pages/student/StudentDashboard';
+import ManageSpinWheel from './pages/admin/ManageSpinWheel';
 
 // Layout component
 const Layout = ({ children }) => {
@@ -53,6 +56,13 @@ const Layout = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Student Dashboard Route */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentDashboard />
+        </ProtectedRoute>
+      } />
+
       {/* Profile and Settings Routes */}
       <Route path="/profile" element={
         <ProtectedRoute allowedRoles={['student', 'admin', 'delivery']}>
@@ -65,7 +75,7 @@ function AppRoutes() {
           <UserSettings />
         </ProtectedRoute>
       } />
-      
+
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -98,24 +108,35 @@ function AppRoutes() {
           <AdminDashboard />
         </ProtectedRoute>
       } />
+      
       <Route path="/admin/analytics" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminAnalytics />
         </ProtectedRoute>
       } />
+      
       <Route path="/admin/menu" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageMenu />
         </ProtectedRoute>
       } />
+      
       <Route path="/admin/delivery-boys" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageDeliveryBoys />
         </ProtectedRoute>
       } />
+      
       <Route path="/admin/orders" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <OrdersManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin Spin Wheel Management Route */}
+      <Route path="/admin/spin-wheel" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ManageSpinWheel />
         </ProtectedRoute>
       } />
 
@@ -125,22 +146,22 @@ function AppRoutes() {
           <DeliveryDashboard />
         </ProtectedRoute>
       } />
-      
-      {/* ✅ FIXED: Added the missing route for Assigned Orders list */}
+
+      {/* Assigned Orders List Route */}
       <Route path="/delivery/orders" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <AssignedOrders />
         </ProtectedRoute>
       } />
-      
-      {/* Route for individual order tracking */}
+
+      {/* Individual Order Tracking Route for Delivery */}
       <Route path="/delivery/orders/:orderId" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <OrderTracking />
         </ProtectedRoute>
       } />
 
-      {/* Default route - redirect based on role */}
+      {/* Default route - redirect to menu */}
       <Route path="/" element={<Navigate to="/menu" replace />} />
 
       {/* 404 Route */}
@@ -153,9 +174,11 @@ function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <CartProvider>
-          <AppRoutes />
-        </CartProvider>
+        <DiscountProvider> {/* ✅ Add DiscountProvider here */}
+          <CartProvider>
+            <AppRoutes />
+          </CartProvider>
+        </DiscountProvider>
       </RoleProvider>
     </AuthProvider>
   );
