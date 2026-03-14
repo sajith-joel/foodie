@@ -13,7 +13,6 @@ const FoodCard = ({ food }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [discountedPrice, setDiscountedPrice] = useState(food.price);
 
   const handleAddToCart = () => {
     if (activeDiscounts.length > 0) {
@@ -72,13 +71,13 @@ const FoodCard = ({ food }) => {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-        {/* Image Section - Mobile Optimized */}
-        <div className="relative h-36 sm:h-40 md:h-48 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden active:bg-gray-50 transition-colors">
+        {/* Image Section - iPhone Optimized */}
+        <div className="relative h-32 xs:h-36 overflow-hidden bg-gray-100">
           <img
             src={imageUrl}
             alt={food.name}
-            className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-cover"
             onError={(e) => {
               e.target.onerror = null;
               e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
@@ -86,149 +85,145 @@ const FoodCard = ({ food }) => {
             loading="lazy"
           />
           
-          {/* Favorite Button - Mobile Optimized */}
+          {/* Favorite Button - iPhone Optimized */}
           <button
             onClick={() => setIsFavorite(!isFavorite)}
-            className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+            className="absolute top-2 right-2 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full shadow-md flex items-center justify-center active:bg-gray-100 transition-colors"
             aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite ? (
-              <HeartSolidIcon className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+              <HeartSolidIcon className="h-4 w-4 text-red-500" />
             ) : (
-              <HeartIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+              <HeartIcon className="h-4 w-4 text-gray-600" />
             )}
           </button>
 
-          {/* Veg/Non-Veg Badge - Mobile Optimized */}
+          {/* Veg/Non-Veg Badge */}
           {food.isVegetarian && (
-            <span className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium">
+            <span className="absolute top-2 left-2 bg-green-500/90 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full font-medium">
               Veg
             </span>
           )}
 
-          {/* Discount Available Badge - Mobile Optimized */}
+          {/* Discount Badge */}
           {activeDiscounts.length > 0 && (
-            <span className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-purple-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full animate-pulse flex items-center">
+            <span className="absolute bottom-2 right-2 bg-purple-500/90 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full flex items-center">
               <span className="mr-1">🎁</span>
               <span className="hidden xs:inline">Discount</span>
             </span>
           )}
         </div>
 
-        {/* Content Section - Mobile Optimized */}
-        <div className="p-3 sm:p-4">
-          {/* Title and Price - Mobile Optimized */}
-          <div className="flex justify-between items-start mb-1 sm:mb-2">
-            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800 line-clamp-1 pr-2">
+        {/* Content Section */}
+        <div className="p-3">
+          {/* Title and Price */}
+          <div className="flex justify-between items-start mb-1">
+            <h3 className="text-[13px] font-medium text-gray-900 line-clamp-1 flex-1 pr-2">
               {food.name}
             </h3>
-            <span className="text-sm sm:text-base md:text-lg font-bold text-primary-600 whitespace-nowrap">
+            <span className="text-[13px] font-semibold text-primary-600 whitespace-nowrap">
               ₹{food.price}
             </span>
           </div>
 
-          {/* Description - Mobile Optimized */}
-          <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-2">
+          {/* Description */}
+          <p className="text-[11px] text-gray-500 mb-2 line-clamp-2">
             {food.description || 'No description available'}
           </p>
 
-          {/* Quantity Controls - Mobile Optimized */}
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* Quantity Controls */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium"
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors text-base font-medium"
                 disabled={food.available === 0}
                 aria-label="Decrease quantity"
               >
-                -
+                −
               </button>
-              <span className="w-6 sm:w-8 text-center text-sm sm:text-base font-medium">
-                {quantity}
-              </span>
+              <span className="w-6 text-center text-[13px] font-medium">{quantity}</span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium"
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors text-base font-medium"
                 disabled={quantity >= food.available}
                 aria-label="Increase quantity"
               >
                 +
               </button>
             </div>
-            <span className="text-[10px] sm:text-xs text-gray-500">
+            <span className="text-[10px] text-gray-400">
               {food.available > 0 ? (
-                <span className="flex items-center">
-                  <span className="hidden xs:inline">{food.available} left</span>
-                  <span className="xs:hidden">{food.available}</span>
-                </span>
+                <span>{food.available} left</span>
               ) : (
                 'Out of stock'
               )}
             </span>
           </div>
 
-          {/* Add to Cart Button - Mobile Optimized */}
-          <Button
+          {/* Add to Cart Button */}
+          <button
             onClick={handleAddToCart}
             disabled={food.available === 0}
-            className="w-full text-xs sm:text-sm py-2 sm:py-2.5"
-            size="sm"
+            className={`mt-3 w-full py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
+              food.available === 0
+                ? 'bg-gray-100 text-gray-400'
+                : 'bg-primary-600 text-white active:bg-primary-700'
+            }`}
           >
             {food.available === 0 ? 'Out of Stock' : 'Add to Cart'}
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Discount Selection Modal - Mobile Optimized */}
+      {/* Discount Modal */}
       <Modal
         isOpen={showDiscountModal}
         onClose={() => setShowDiscountModal(false)}
         title="Apply Discount"
         size="md"
       >
-        <div className="space-y-3 sm:space-y-4">
-          <p className="text-xs sm:text-sm text-gray-600">
+        <div className="space-y-3">
+          <p className="text-[13px] text-gray-600">
             You have {activeDiscounts.length} active discount{activeDiscounts.length > 1 ? 's' : ''}! 
-            Would you like to apply one to this item?
+            Apply to this item?
           </p>
 
-          {/* Discount List - Mobile Optimized */}
-          <div className="space-y-2 max-h-48 sm:max-h-60 overflow-y-auto">
+          {/* Discount List */}
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {activeDiscounts.map((discount) => (
               <button
                 key={discount.id}
                 onClick={() => handleApplyDiscount(discount)}
-                className="w-full p-2 sm:p-3 border rounded-lg hover:bg-purple-50 transition-colors text-left flex items-center justify-between touch-manipulation"
+                className="w-full p-2 border rounded-lg active:bg-purple-50 transition-colors text-left flex items-center justify-between"
               >
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm sm:text-base font-semibold text-purple-600 block truncate">
+                <div>
+                  <span className="text-[13px] font-semibold text-purple-600">
                     {discount.label}
                   </span>
-                  <p className="text-[10px] sm:text-xs text-gray-500">
+                  <p className="text-[10px] text-gray-400">
                     Expires: {new Date(discount.expiresAt).toLocaleDateString()}
                   </p>
                 </div>
-                <span className="text-xl sm:text-2xl ml-2 flex-shrink-0">🎁</span>
+                <span className="text-lg">🎁</span>
               </button>
             ))}
           </div>
 
-          {/* Action Buttons - Mobile Optimized */}
-          <div className="flex flex-col-reverse sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-3 sm:pt-4">
-            <Button
-              variant="secondary"
+          {/* Action Buttons */}
+          <div className="flex space-x-2 pt-2">
+            <button
               onClick={handleAddWithoutDiscount}
-              className="w-full sm:w-auto text-sm py-2"
+              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-[13px] font-medium active:bg-gray-50 transition-colors"
             >
-              Add Without Discount
-            </Button>
-            <Button
-              variant="primary"
+              Add Without
+            </button>
+            <button
               onClick={() => setShowDiscountModal(false)}
-              className="w-full sm:w-auto text-sm py-2"
+              className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl text-[13px] font-medium active:bg-primary-700 transition-colors"
             >
               Cancel
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>

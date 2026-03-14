@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useRole } from '../../hooks/useRole';
 import { useCart } from '../../hooks/useCart';
-import { ShoppingCartIcon, UserIcon, BellIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, UserIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import NotificationBell from '../notifications/NotificationBell';
 import logo from '../../assets/logo.png';
 import toast from 'react-hot-toast';
@@ -14,8 +14,27 @@ const Navbar = ({ toggleSidebar }) => {
   const { cart } = useCart();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
 
   const cartItemCount = cart?.reduce((total, item) => total + item.quantity, 0) || 0;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showUserMenu &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        !buttonRef.current?.contains(event.target)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
 
   const handleLogout = async () => {
     try {
@@ -28,7 +47,7 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const getDashboardLink = () => {
-    switch(role) {
+    switch (role) {
       case 'admin': return '/admin';
       case 'delivery': return '/delivery';
       default: return '/menu';
@@ -36,35 +55,42 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 safe-top">
       <div className="container-custom">
-        <div className="flex justify-between items-center h-14 sm:h-16">
+        <div className="flex justify-between items-center h-14">
           {/* Left section */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-1">
             <button
               onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center active:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
-              <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+              <Bars3Icon className="h-5 w-5 text-gray-700" />
             </button>
-            
-            <Link to={getDashboardLink()} className="flex items-center space-x-2">
-              <img src={logo} alt="Campus Food" className="h-7 w-auto sm:h-8" />
-              <span className="font-bold text-base sm:text-xl text-primary-600 hidden xs:inline">
+
+            <Link 
+              to={getDashboardLink()} 
+              className="flex items-center space-x-1.5 px-1 py-2 active:bg-gray-50 rounded-lg transition-colors"
+            >
+              <img src={logo} alt="Campus Food" className="h-6 w-auto" />
+              <span className="font-semibold text-sm text-primary-600 hidden xs:inline">
                 CampusFood
               </span>
             </Link>
           </div>
 
           {/* Right section */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-0.5">
             {role === 'student' && (
-              <Link to="/cart" className="relative p-1.5 sm:p-2">
-                <ShoppingCartIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600 hover:text-primary-600" />
+              <Link 
+                to="/cart" 
+                className="relative w-9 h-9 flex items-center justify-center active:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Shopping cart"
+              >
+                <ShoppingCartIcon className="h-5 w-5 text-gray-700" />
                 {cartItemCount > 0 && (
-                  <span className="absolute top-0 right-0 bg-primary-600 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
-                    {cartItemCount}
+                  <span className="absolute top-1 right-1 bg-primary-600 text-white text-[9px] font-medium rounded-full h-4 w-4 flex items-center justify-center">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
                   </span>
                 )}
               </Link>
@@ -75,39 +101,38 @@ const Navbar = ({ toggleSidebar }) => {
             {/* User Menu */}
             <div className="relative">
               <button
+                ref={buttonRef}
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg"
+                className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center active:bg-primary-100 transition-colors"
                 aria-label="User menu"
+                aria-expanded={showUserMenu}
               >
-                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                  <UserIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
-                </div>
-                <span className="hidden md:block text-xs sm:text-sm font-medium text-gray-700">
-                  {user?.email?.split('@')[0]}
-                </span>
+                <UserIcon className="h-4 w-4 text-primary-600" />
               </button>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown Menu - iPhone Optimized */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-40 sm:w-48 bg-white rounded-md shadow-lg py-1 border z-50">
+                <div 
+                  ref={menuRef}
+                  className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 overflow-hidden"
+                >
                   <Link
                     to="/profile"
-                    className="block px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                    className="block px-4 py-3 text-[13px] text-gray-700 active:bg-gray-50 transition-colors border-b border-gray-50"
                     onClick={() => setShowUserMenu(false)}
                   >
                     Profile
                   </Link>
                   <Link
                     to="/settings"
-                    className="block px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                    className="block px-4 py-3 text-[13px] text-gray-700 active:bg-gray-50 transition-colors border-b border-gray-50"
                     onClick={() => setShowUserMenu(false)}
                   >
                     Settings
                   </Link>
-                  <hr className="my-1" />
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-3 text-[13px] text-red-600 active:bg-red-50 transition-colors"
                   >
                     Logout
                   </button>
