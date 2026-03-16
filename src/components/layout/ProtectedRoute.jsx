@@ -11,12 +11,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  console.log('🛡️ ProtectedRoute - Path:', location.pathname);
-  console.log('🛡️ ProtectedRoute - User:', user?.email);
-  console.log('🛡️ ProtectedRoute - Role:', role);
-  console.log('🛡️ ProtectedRoute - Allowed roles:', allowedRoles);
-
-  // Show loading while checking auth or role
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -25,16 +19,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  // If not logged in, redirect to login
   if (!user) {
-    console.log('🛡️ No user, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if user has allowed role
   if (!allowedRoles.includes(role)) {
-    console.log(`🛡️ Role ${role} not allowed. Redirecting to appropriate page`);
-    
     if (role === 'admin') {
       return <Navigate to="/admin" replace />;
     } else if (role === 'delivery') {
@@ -44,14 +33,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     }
   }
 
-  // User has correct role - show the page with Navbar and Sidebar
-  console.log('🛡️ Access granted - showing page with Navbar');
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 p-4 sm:p-6">
           {children}
         </main>
       </div>

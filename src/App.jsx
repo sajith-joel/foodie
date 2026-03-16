@@ -39,11 +39,11 @@ const Layout = ({ children }) => {
   const { role } = useRole();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {user && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 p-4 sm:p-6">
           {children}
           {/* Debug info - remove in production */}
           <div className="mt-8 p-4 bg-gray-100 rounded text-sm">

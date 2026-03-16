@@ -12,17 +12,17 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 
-// ✅ Get all delivery partners (SINGLE DECLARATION)
-export const getDeliveryPartners = async () => {
+// ✅ Get all delivery partners (both active and inactive)
+export const getDeliveryPartners = async (showAll = true) => {
   try {
     console.log('🔵 Fetching delivery partners...');
     const partners = [];
-
+    
     // Method 1: Check delivery_partners collection
     try {
       const partnersRef = collection(db, 'delivery_partners');
       const partnersSnapshot = await getDocs(partnersRef);
-
+      
       partnersSnapshot.forEach((doc) => {
         const data = doc.data();
         partners.push({
@@ -39,18 +39,18 @@ export const getDeliveryPartners = async () => {
           source: 'delivery_partners'
         });
       });
-
+      
       console.log(`✅ Found ${partnersSnapshot.size} partners in delivery_partners`);
     } catch (e) {
       console.log('Error fetching from delivery_partners:', e);
     }
-
+    
     // Method 2: Check users collection for delivery role
     try {
       const usersRef = collection(db, 'users');
       const usersQuery = query(usersRef, where('role', '==', 'delivery'));
       const usersSnapshot = await getDocs(usersQuery);
-
+      
       usersSnapshot.forEach((doc) => {
         const data = doc.data();
         // Check if not already added (by email)
@@ -71,18 +71,22 @@ export const getDeliveryPartners = async () => {
           });
         }
       });
-
+      
       console.log(`✅ Found ${usersSnapshot.size} delivery partners in users`);
     } catch (e) {
       console.log('Error fetching from users:', e);
     }
-
-    // Filter only active partners
-    const activePartners = partners.filter(p => p.status === 'active' && p.isActive !== false);
-
-    console.log(`✅ Total active delivery partners: ${activePartners.length}`);
-    return activePartners;
-
+    
+    // Only filter if showAll is false
+    if (!showAll) {
+      const activePartners = partners.filter(p => p.status === 'active' && p.isActive !== false);
+      console.log(`✅ Filtered to ${activePartners.length} active partners`);
+      return activePartners;
+    }
+    
+    console.log(`✅ Total partners (including inactive): ${partners.length}`);
+    return partners;
+    
   } catch (error) {
     console.error('❌ Error in getDeliveryPartners:', error);
     return [];

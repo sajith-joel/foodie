@@ -3,13 +3,15 @@ import GlassCard from '../../components/ui/GlassCard';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
-import {
-  UserPlusIcon,
-  PencilIcon,
-  TrashIcon,
-  CheckCircleIcon,
+import { 
+  UserPlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  CheckCircleIcon, 
   XCircleIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { getDeliveryPartners, addDeliveryPartner, updateDeliveryPartner, deleteDeliveryPartner } from '../../services/deliveryService';
 import toast from 'react-hot-toast';
@@ -19,6 +21,7 @@ const ManageDeliveryBoys = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBoy, setEditingBoy] = useState(null);
+  const [showInactive, setShowInactive] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,18 +32,22 @@ const ManageDeliveryBoys = () => {
 
   useEffect(() => {
     fetchDeliveryBoys();
-  }, []);
+  }, [showInactive]);
 
   const fetchDeliveryBoys = async () => {
     setLoading(true);
     try {
-      const partners = await getDeliveryPartners();
+      const partners = await getDeliveryPartners(true);
       console.log('Fetched delivery partners:', partners);
-      setDeliveryBoys(partners);
-
-      if (partners.length === 0) {
-        // Use info toast instead of success for empty state
-        toast('No delivery partners found. Add one using the "Add New Partner" button.', {
+      
+      const filteredPartners = showInactive 
+        ? partners 
+        : partners.filter(p => p.status === 'active');
+      
+      setDeliveryBoys(filteredPartners);
+      
+      if (filteredPartners.length === 0) {
+        toast('No delivery partners found matching current filter.', {
           icon: 'ℹ️',
           duration: 4000
         });
@@ -78,8 +85,7 @@ const ManageDeliveryBoys = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validation
+    
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error('Please fill in all required fields');
       return;
@@ -94,7 +100,7 @@ const ManageDeliveryBoys = () => {
         toast.success('Delivery partner added successfully');
       }
       setIsModalOpen(false);
-      fetchDeliveryBoys(); // Refresh the list
+      fetchDeliveryBoys();
     } catch (error) {
       console.error('Error saving delivery partner:', error);
       toast.error('Failed to save delivery partner');
@@ -102,45 +108,14 @@ const ManageDeliveryBoys = () => {
   };
 
   const handleDelete = async (id) => {
-    // Show confirmation dialog with more context
-    const confirmDelete = window.confirm(
-      'Are you sure you want to remove this delivery partner?\n\n' +
-      'They will no longer receive new orders and their status will be set to inactive.'
-    );
-
-    if (!confirmDelete) return;
-
-    // Show loading toast
-    const loadingToast = toast.loading('Removing delivery partner...');
-
-    try {
-      console.log('Attempting to delete partner with ID:', id);
-
-      // Call the delete function
-      const result = await deleteDeliveryPartner(id);
-
-      // Dismiss loading toast
-      toast.dismiss(loadingToast);
-
-      if (result && result.success) {
-        toast.success(result.message || 'Delivery partner removed successfully');
-        fetchDeliveryBoys(); // Refresh the list
-      } else {
-        toast.error(result?.message || 'Failed to remove delivery partner');
-      }
-    } catch (error) {
-      // Dismiss loading toast
-      toast.dismiss(loadingToast);
-
-      console.error('Error deleting delivery partner:', error);
-
-      // Show specific error message
-      if (error.message.includes('permission')) {
-        toast.error('Permission denied. Make sure you are logged in as admin.');
-      } else if (error.message.includes('not found')) {
-        toast.error('Delivery partner not found. They may have been already removed.');
-      } else {
-        toast.error(error.message || 'Failed to remove delivery partner');
+    if (window.confirm('Are you sure you want to remove this delivery partner?')) {
+      try {
+        await deleteDeliveryPartner(id);
+        toast.success('Delivery partner removed successfully');
+        fetchDeliveryBoys();
+      } catch (error) {
+        console.error('Error deleting delivery partner:', error);
+        toast.error('Failed to remove delivery partner');
       }
     }
   };
@@ -149,8 +124,8 @@ const ManageDeliveryBoys = () => {
     try {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
       await updateDeliveryPartner(id, { status: newStatus });
-      toast.success(`Partner ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
-      fetchDeliveryBoys(); // Refresh the list
+      toast.success(`Partner marked as ${newStatus}`);
+      fetchDeliveryBoys();
     } catch (error) {
       console.error('Error toggling status:', error);
       toast.error('Failed to update status');
@@ -170,6 +145,23 @@ const ManageDeliveryBoys = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Manage Delivery Partners</h1>
         <div className="flex space-x-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowInactive(!showInactive)}
+            className="flex items-center"
+          >
+            {showInactive ? (
+              <>
+                <EyeSlashIcon className="h-5 w-5 mr-2" />
+                Hide Inactive
+              </>
+            ) : (
+              <>
+                <EyeIcon className="h-5 w-5 mr-2" />
+                Show Inactive
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             onClick={fetchDeliveryBoys}
@@ -197,15 +189,15 @@ const ManageDeliveryBoys = () => {
           </p>
         </GlassCard>
         <GlassCard className="p-4">
-          <p className="text-sm text-gray-600">Total Deliveries</p>
-          <p className="text-2xl font-bold">
-            {deliveryBoys.reduce((sum, boy) => sum + (boy.totalDeliveries || 0), 0)}
+          <p className="text-sm text-gray-600">Inactive</p>
+          <p className="text-2xl font-bold text-red-600">
+            {deliveryBoys.filter(b => b.status === 'inactive').length}
           </p>
         </GlassCard>
         <GlassCard className="p-4">
           <p className="text-sm text-gray-600">Avg Rating</p>
           <p className="text-2xl font-bold text-yellow-500">
-            {deliveryBoys.length > 0
+            {deliveryBoys.length > 0 
               ? (deliveryBoys.reduce((sum, boy) => sum + (boy.rating || 0), 0) / deliveryBoys.length).toFixed(1)
               : '0.0'}
           </p>
@@ -218,7 +210,11 @@ const ManageDeliveryBoys = () => {
           <div className="text-center py-12">
             <UserPlusIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Delivery Partners</h3>
-            <p className="text-gray-500 mb-6">Get started by adding your first delivery partner.</p>
+            <p className="text-gray-500 mb-6">
+              {showInactive 
+                ? 'No partners found. Add your first delivery partner.'
+                : 'No active partners found. Toggle "Show Inactive" to see inactive partners.'}
+            </p>
             <Button onClick={() => handleOpenModal()} variant="primary">
               <UserPlusIcon className="h-5 w-5 mr-2" />
               Add New Partner
@@ -241,7 +237,9 @@ const ManageDeliveryBoys = () => {
               </thead>
               <tbody>
                 {deliveryBoys.map((boy) => (
-                  <tr key={boy.id} className="border-b hover:bg-gray-50">
+                  <tr key={boy.id} className={`border-b hover:bg-gray-50 ${
+                    boy.status === 'inactive' ? 'bg-gray-50 text-gray-500' : ''
+                  }`}>
                     <td className="py-3 px-4 font-medium">{boy.name}</td>
                     <td className="py-3 px-4">
                       <div>{boy.email}</div>
@@ -251,10 +249,11 @@ const ManageDeliveryBoys = () => {
                     <td className="py-3 px-4">
                       <button
                         onClick={() => toggleStatus(boy.id, boy.status)}
-                        className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${boy.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                          }`}
+                        className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
+                          boy.status === 'active'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
                       >
                         {boy.status === 'active' ? (
                           <CheckCircleIcon className="h-4 w-4" />
@@ -377,4 +376,5 @@ const ManageDeliveryBoys = () => {
   );
 };
 
+// ✅ Make sure this export is at the very end
 export default ManageDeliveryBoys;
