@@ -1,8 +1,10 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
-const CartContext = createContext();
+// ✅ Export the context
+export const CartContext = createContext();
 
+// ✅ Export the hook
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -13,21 +15,18 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth();
 
   // Load cart for specific user when user changes
   useEffect(() => {
     if (user) {
-      // Load user-specific cart
       const savedCart = localStorage.getItem(`cart_${user.uid}`);
       if (savedCart) {
         setCart(JSON.parse(savedCart));
       } else {
-        // New user, start with empty cart
         setCart([]);
       }
     } else {
-      // No user logged in, clear cart
       setCart([]);
     }
   }, [user]);
@@ -71,7 +70,6 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCart([]);
-    // Also clear from localStorage for current user
     if (user) {
       localStorage.removeItem(`cart_${user.uid}`);
     }
