@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { db } from '../services/firebase';
-import { collection, addDoc, query, where, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 const DiscountContext = createContext();
@@ -32,6 +32,7 @@ export const DiscountProvider = ({ children }) => {
   const loadUserDiscounts = async () => {
     setLoading(true);
     try {
+      console.log('Loading discounts for user:', user.uid);
       const discountsRef = collection(db, 'user_discounts');
       const q = query(
         discountsRef, 
@@ -49,9 +50,11 @@ export const DiscountProvider = ({ children }) => {
         });
       });
       
+      console.log('Loaded discounts:', discounts);
       setActiveDiscounts(discounts);
     } catch (error) {
       console.error('Error loading discounts:', error);
+      toast.error('Failed to load discounts');
     } finally {
       setLoading(false);
     }
@@ -72,20 +75,23 @@ export const DiscountProvider = ({ children }) => {
       const discount = {
         userId: user.uid,
         userEmail: user.email,
-        type: discountData.type, // 'percentage' or 'free' or 'bogo'
-        value: discountData.value, // 10, 15, 20, etc. or 'free', 'bogo'
+        type: discountData.type || 'percentage',
+        value: discountData.value,
         label: discountData.label,
         used: false,
         createdAt: new Date().toISOString(),
         expiresAt: expiresAt.toISOString(),
-        source: discountData.source // 'spinwheel' or 'memorygame'
+        source: discountData.source || 'game'
       };
 
+      console.log('Saving discount:', discount);
       const docRef = await addDoc(collection(db, 'user_discounts'), discount);
-      console.log('Discount added:', docRef.id);
+      console.log('Discount saved with ID:', docRef.id);
       
       // Refresh discounts
       await loadUserDiscounts();
+      
+      toast.success(`🎉 You won ${discount.label}! Check your coupons in cart.`);
       
       return {
         id: docRef.id,
@@ -119,9 +125,6 @@ export const DiscountProvider = ({ children }) => {
         discountedPrice = itemPrice - (itemPrice * percent / 100);
       } else if (discount.type === 'free') {
         discountedPrice = 0;
-      } else if (discount.type === 'bogo') {
-        // For BOGO, we'll handle it separately in the cart
-        discountedPrice = itemPrice; // Will add another item free
       }
 
       // Mark discount as used

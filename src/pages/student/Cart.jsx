@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import CartItem from '../../components/food/CartItem';
 import Button from '../../components/ui/Button';
 import GlassCard from '../../components/ui/GlassCard';
-import { ShoppingBagIcon, CreditCardIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { ShoppingBagIcon, CreditCardIcon, MapPinIcon, GiftIcon } from '@heroicons/react/24/outline';
 import { createOrder } from '../../services/orderService';
 import { useNotifications } from '../../hooks/useNotifications';
 import toast from 'react-hot-toast';
@@ -39,6 +39,19 @@ const Cart = () => {
   const deliveryFee = 0;
   const tax = subtotal * 0.0;
   const total = subtotal + deliveryFee + tax;
+
+  // Calculate total savings from discounts
+  const totalSavings = cart.reduce((sum, item) => {
+    if (item.discountApplied) {
+      return sum + ((item.originalPrice - item.price) * item.quantity);
+    }
+    return sum;
+  }, 0);
+
+  // Calculate original total without discounts
+  const originalTotal = cart.reduce((sum, item) => {
+    return sum + (item.originalPrice * item.quantity);
+  }, 0);
 
   const handleLocationChange = (e) => {
     const value = e.target.value;
@@ -102,7 +115,7 @@ const Cart = () => {
         userId: user.uid,
         userEmail: user.email,
         customerName: user.displayName || user.name || user.email?.split('@')[0] || 'Customer',
-        customerPhone: user.phoneNumber || user.phone || '', // ✅ Include phone number
+        customerPhone: user.phoneNumber || user.phone || '',
         deliveryLocation: {
           id: selectedLocation || 'custom',
           name: selectedLocationData?.name || 'Custom Location',
@@ -113,9 +126,13 @@ const Cart = () => {
           name: item.name,
           quantity: item.quantity,
           price: item.price,
+          originalPrice: item.originalPrice || item.price,
+          discountApplied: item.discountApplied || null,
           total: item.price * item.quantity
         })),
         subtotal,
+        originalTotal,
+        totalSavings,
         deliveryFee,
         tax,
         total,
@@ -202,6 +219,24 @@ const Cart = () => {
           <GlassCard className="p-6 sticky top-24">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Order Summary</h2>
 
+            {/* Savings Banner - Show if there are discounts */}
+            {totalSavings > 0 && (
+              <div className="bg-green-50 p-4 rounded-lg mb-6 border border-green-200">
+                <div className="flex items-start space-x-3">
+                  <GiftIcon className="h-6 w-6 text-green-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">🎉 You're Saving!</p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Total savings: <span className="font-bold">₹{totalSavings}</span>
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Original total: <span className="line-through">₹{originalTotal}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Delivery Location Selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,18 +277,32 @@ const Cart = () => {
 
             {/* Price Breakdown */}
             <div className="space-y-3 mb-6">
+              {originalTotal > subtotal && (
+                <div className="flex justify-between text-gray-600">
+                  <span>Original Total</span>
+                  <span className="line-through">₹{originalTotal.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
-              {/* <div className="flex justify-between text-gray-600">
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount Savings</span>
+                  <span>-₹{totalSavings.toFixed(2)}</span>
+                </div>
+              )}
+              {/* Commented out delivery fee and tax
+              <div className="flex justify-between text-gray-600">
                 <span>Delivery Fee</span>
                 <span>₹{deliveryFee.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
-                <span>Tax (5%)</span>
+                <span>Tax</span>
                 <span>₹{tax.toFixed(2)}</span>
-              </div> */}
+              </div>
+              */}
               <div className="border-t pt-3">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>

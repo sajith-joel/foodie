@@ -15,7 +15,8 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">{item.name}</h3>
           {hasDiscount && (
-            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">
+            <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full flex items-center">
+              <span className="mr-1">🎁</span>
               {item.discountApplied.label}
             </span>
           )}
@@ -26,6 +27,9 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
             <>
               <span className="text-sm text-gray-400 line-through mr-2">₹{item.originalPrice}</span>
               <span className="text-sm font-bold text-green-600">₹{item.price}</span>
+              <span className="text-xs text-green-600 ml-2">
+                (Save ₹{item.originalPrice - item.price})
+              </span>
             </>
           ) : (
             <span className="text-sm text-gray-600">₹{item.price} each</span>
@@ -62,6 +66,12 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
             </button>
           </div>
         </div>
+
+        {hasDiscount && (
+          <div className="mt-2 text-xs text-green-600 bg-green-50 p-2 rounded">
+            ✓ Discount applied: {item.discountApplied.label} - You saved ₹{item.originalPrice - item.price} on this item!
+          </div>
+        )}
       </div>
     </div>
   );
