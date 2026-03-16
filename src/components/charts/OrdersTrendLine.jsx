@@ -1,9 +1,18 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const OrdersTrendLine = ({ data = [] }) => {
+  // Ensure data is valid
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full h-80 flex items-center justify-center bg-gray-50 rounded-lg">
+        <p className="text-gray-500">No orders data available</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-80">
-      <ResponsiveContainer>
+    <div className="w-full h-80 min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
@@ -22,4 +31,4 @@ const OrdersTrendLine = ({ data = [] }) => {
   );
 };
 
-export default OrdersTrendLine;
+export default OrdersTrendLine; 

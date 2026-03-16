@@ -34,7 +34,16 @@ const AdminDashboard = () => {
   const [mostSoldData, setMostSoldData] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState(7); // Default 7 days
+  const [chartReady, setChartReady] = useState(false);
+  const [dateRange, setDateRange] = useState(7);
+
+  // Set chart ready after container is mounted
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setChartReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -45,7 +54,6 @@ const AdminDashboard = () => {
     try {
       console.log('Loading dashboard data...');
       
-      // Fetch all data in parallel
       const [statsData, revenue, mostSold, recent] = await Promise.all([
         getDashboardStats(),
         getRevenueData(dateRange),
@@ -134,13 +142,13 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <select
             value={dateRange}
             onChange={(e) => setDateRange(Number(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
@@ -148,7 +156,7 @@ const AdminDashboard = () => {
           </select>
           <button
             onClick={loadDashboardData}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"
             title="Refresh"
           >
             <ArrowPathIcon className="h-5 w-5 text-gray-600" />
@@ -157,19 +165,19 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <GlassCard key={index} className="p-4 hover:shadow-lg transition-shadow">
+            <GlassCard key={index} className="p-3 sm:p-4 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">{stat.title}</p>
-                  <p className="text-xl font-bold">{stat.value}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-600 mb-1 truncate">{stat.title}</p>
+                  <p className="text-base sm:text-xl font-bold truncate">{stat.value}</p>
                   <p className="text-xs text-green-600 mt-1">{stat.change}</p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="h-5 w-5 text-white" />
+                <div className={`${stat.color} p-2 sm:p-3 rounded-lg ml-2 flex-shrink-0`}>
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
             </GlassCard>
@@ -178,15 +186,15 @@ const AdminDashboard = () => {
       </div>
 
       {/* Order Status Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <GlassCard className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <GlassCard className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pending Orders</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Pending Orders</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.pendingOrders}</p>
             </div>
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <ClockIcon className="h-6 w-6 text-yellow-600" />
+            <div className="bg-yellow-100 p-2 sm:p-3 rounded-lg">
+              <ClockIcon className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
             </div>
           </div>
           <Link to="/admin/orders?filter=pending" className="text-xs text-primary-600 hover:text-primary-700 mt-2 block">
@@ -194,14 +202,14 @@ const AdminDashboard = () => {
           </Link>
         </GlassCard>
 
-        <GlassCard className="p-4">
+        <GlassCard className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Preparing</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.preparingOrders}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Preparing</p>
+              <p className="text-xl sm:text-2xl font-bold text-purple-600">{stats.preparingOrders}</p>
             </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <ShoppingBagIcon className="h-6 w-6 text-purple-600" />
+            <div className="bg-purple-100 p-2 sm:p-3 rounded-lg">
+              <ShoppingBagIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
             </div>
           </div>
           <Link to="/admin/orders?filter=preparing" className="text-xs text-primary-600 hover:text-primary-700 mt-2 block">
@@ -209,14 +217,14 @@ const AdminDashboard = () => {
           </Link>
         </GlassCard>
 
-        <GlassCard className="p-4">
+        <GlassCard className="p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Delivered Today</p>
-              <p className="text-2xl font-bold text-green-600">{stats.deliveredOrders}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Delivered Today</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.deliveredOrders}</p>
             </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            <div className="bg-green-100 p-2 sm:p-3 rounded-lg">
+              <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
           </div>
           <Link to="/admin/orders?filter=delivered" className="text-xs text-primary-600 hover:text-primary-700 mt-2 block">
@@ -226,124 +234,138 @@ const AdminDashboard = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassCard className="p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <GlassCard className="p-4 sm:p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Revenue Overview</h2>
-            <span className="text-sm text-gray-500">Last {dateRange} days</span>
+            <h2 className="text-lg sm:text-xl font-semibold">Revenue Overview</h2>
+            <span className="text-xs sm:text-sm text-gray-500">Last {dateRange} days</span>
           </div>
-          {revenueData.length > 0 ? (
-            <RevenueChart data={revenueData} />
-          ) : (
-            <div className="h-80 flex items-center justify-center text-gray-500">
-              No revenue data available
-            </div>
-          )}
+          <div className="w-full h-64 sm:h-80" style={{ minHeight: '250px' }}>
+            {loading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : revenueData.length > 0 ? (
+              chartReady && <RevenueChart data={revenueData} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                No revenue data available
+              </div>
+            )}
+          </div>
         </GlassCard>
 
-        <GlassCard className="p-6">
+        <GlassCard className="p-4 sm:p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Most Sold Items</h2>
-            <span className="text-sm text-gray-500">All time</span>
+            <h2 className="text-lg sm:text-xl font-semibold">Most Sold Items</h2>
+            <span className="text-xs sm:text-sm text-gray-500">All time</span>
           </div>
-          {mostSoldData.length > 0 ? (
-            <MostSoldPie data={mostSoldData} />
-          ) : (
-            <div className="h-80 flex items-center justify-center text-gray-500">
-              No sales data available
-            </div>
-          )}
+          <div className="w-full h-64 sm:h-80" style={{ minHeight: '250px' }}>
+            {loading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : mostSoldData.length > 0 ? (
+              chartReady && <MostSoldPie data={mostSoldData} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                No sales data available
+              </div>
+            )}
+          </div>
         </GlassCard>
       </div>
 
       {/* Recent Orders */}
-      <GlassCard className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Recent Orders</h2>
+      <GlassCard className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold">Recent Orders</h2>
           <Link to="/admin/orders" className="text-primary-600 hover:text-primary-700 font-medium text-sm">
             View All →
           </Link>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left py-3 px-4 text-sm font-semibold">Order ID</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold">Customer</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold">Amount</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold">Payment</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.length > 0 ? (
-                recentOrders.map((order) => (
-                  <tr key={order.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium">#{order.id.slice(-6)}</td>
-                    <td className="py-3 px-4">{order.customerName}</td>
-                    <td className="py-3 px-4 font-semibold">₹{order.total}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        order.paymentMethod === 'Online' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {order.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleTimeString()}
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order ID</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-3 sm:px-4 py-3 text-sm font-medium">#{order.id?.slice(-6)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-sm">{order.customerName}</td>
+                      <td className="px-3 sm:px-4 py-3 text-sm font-semibold">₹{order.total}</td>
+                      <td className="px-3 sm:px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          order.paymentMethod === 'Online' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {order.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-4 py-3 text-sm text-gray-500">
+                        {new Date(order.createdAt).toLocaleTimeString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-3 sm:px-4 py-8 text-center text-gray-500">
+                      No recent orders
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-500">
-                    No recent orders
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </GlassCard>
 
       {/* Quick Actions */}
-      <GlassCard className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <GlassCard className="p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <Link
             to="/admin/menu"
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <ShoppingBagIcon className="h-8 w-8 mx-auto mb-2 text-primary-600" />
-            <span className="text-sm font-medium">Manage Menu</span>
+            <ShoppingBagIcon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-primary-600" />
+            <span className="text-xs sm:text-sm font-medium">Manage Menu</span>
           </Link>
           <Link
             to="/admin/orders"
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <ClockIcon className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-            <span className="text-sm font-medium">Pending Orders</span>
+            <ClockIcon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-orange-600" />
+            <span className="text-xs sm:text-sm font-medium">Pending Orders</span>
           </Link>
           <Link
             to="/admin/delivery-boys"
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <TruckIcon className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-            <span className="text-sm font-medium">Delivery Partners</span>
+            <TruckIcon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-blue-600" />
+            <span className="text-xs sm:text-sm font-medium">Delivery Partners</span>
           </Link>
           <Link
             to="/admin/analytics"
-            className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
           >
-            <CurrencyRupeeIcon className="h-8 w-8 mx-auto mb-2 text-green-600" />
-            <span className="text-sm font-medium">View Analytics</span>
+            <CurrencyRupeeIcon className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-green-600" />
+            <span className="text-xs sm:text-sm font-medium">View Analytics</span>
           </Link>
         </div>
       </GlassCard>
