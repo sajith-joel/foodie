@@ -36,13 +36,13 @@ const MemoryGame = ({ onWin }) => {
         setHasWon(true);
       }
       
-      // Load remaining attempts
-      const savedAttempts = localStorage.getItem(`memory_attempts_${user.uid}`);
-      if (savedAttempts) {
-        setAttemptsLeft(parseInt(savedAttempts));
-      } else {
-        localStorage.setItem(`memory_attempts_${user.uid}`, MAX_ATTEMPTS.toString());
-      }
+      // // Load remaining attempts
+      // const savedAttempts = localStorage.getItem(`memory_attempts_${user.uid}`);
+      // if (savedAttempts) {
+      //   setAttemptsLeft(parseInt(savedAttempts));
+      // } else {
+      //   localStorage.setItem(`memory_attempts_${user.uid}`, MAX_ATTEMPTS.toString());
+      // }
     }
   }, [user]);
 
@@ -60,10 +60,10 @@ const MemoryGame = ({ onWin }) => {
       return;
     }
 
-    if (attemptsLeft <= 0) {
-      toast.error('No attempts left! You have used all 3 trials.');
-      return;
-    }
+    // if (attemptsLeft <= 0) {
+    //   toast.error('No attempts left! You have used all 3 trials.');
+    //   return;
+    // }
 
     const duplicatedEmojis = [...foodEmojis, ...foodEmojis];
     const shuffled = duplicatedEmojis.sort(() => Math.random() - 0.5);
@@ -145,7 +145,7 @@ const MemoryGame = ({ onWin }) => {
           });
 
           // Reduce attempts
-          updateAttemptsLeft(attemptsLeft - 1);
+          // updateAttemptsLeft(attemptsLeft - 1);
         }
       } else {
         // No match, flip back after delay
@@ -159,8 +159,8 @@ const MemoryGame = ({ onWin }) => {
         setGameOver(true);
         toast.error('Game Over! Maximum moves reached.');
         
-        // Reduce attempts on game over
-        updateAttemptsLeft(attemptsLeft - 1);
+         // Reduce attempts on game over
+        // updateAttemptsLeft(attemptsLeft - 1);
       }
     }
   };
@@ -192,9 +192,9 @@ const MemoryGame = ({ onWin }) => {
             </button>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+            {/* <div className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
               Trials left: {attemptsLeft}/{MAX_ATTEMPTS}
-            </div>
+            </div> */}
             {gameStarted && (
               <>
                 <div className="text-sm">
@@ -219,15 +219,15 @@ const MemoryGame = ({ onWin }) => {
               View Rules
             </Button>
           </div>
-        ) : attemptsLeft <= 0 ? (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">😢</div>
-            <h3 className="text-xl font-bold text-red-600 mb-2">No Trials Left</h3>
-            <p className="text-gray-600 mb-4">You have used all {MAX_ATTEMPTS} attempts.</p>
-            <Button onClick={() => setShowRules(true)} variant="outline" size="sm">
-              View Rules
-            </Button>
-          </div>
+        // ) : attemptsLeft <= 0 ? (
+        //   <div className="text-center py-8">
+        //     <div className="text-6xl mb-4">😢</div>
+        //     <h3 className="text-xl font-bold text-red-600 mb-2">No Trials Left</h3>
+        //     <p className="text-gray-600 mb-4">You have used all {MAX_ATTEMPTS} attempts.</p>
+        //     <Button onClick={() => setShowRules(true)} variant="outline" size="sm">
+        //       View Rules
+        //     </Button>
+        //   </div>
         ) : !gameStarted ? (
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">Match the food pairs within {MAX_MOVES} moves to win!</p>
@@ -242,9 +242,9 @@ const MemoryGame = ({ onWin }) => {
               <p className="text-sm text-gray-500">🎯 Complete in 8 moves → 15% OFF</p>
               <p className="text-sm text-gray-500">🎯 Complete in 10 moves → 10% OFF</p>
               <p className="text-sm text-gray-500">🎯 Complete in 12 moves → 5% OFF</p>
-              <p className="text-sm text-purple-600 font-semibold mt-2">
+              {/* <p className="text-sm text-purple-600 font-semibold mt-2">
                 {attemptsLeft} trial{attemptsLeft !== 1 ? 's' : ''} remaining
-              </p>
+              </p> */}
             </div>
             <Button onClick={initializeGame} disabled={hasWon || attemptsLeft <= 0}>
               Start Game ({attemptsLeft} trials left)
@@ -281,9 +281,9 @@ const MemoryGame = ({ onWin }) => {
                   <h3 className="text-lg font-bold text-green-700 mb-2">🎉 You Win!</h3>
                   <p className="text-gray-700 mb-2">{getPrizeMessage()}</p>
                   <p className="text-sm text-gray-500 mb-1">Moves used: {moves}/{MAX_MOVES}</p>
-                  <p className="text-sm text-purple-600 mb-3">
+                  {/* <p className="text-sm text-purple-600 mb-3">
                     Trials left: {attemptsLeft - 1}
-                  </p>
+                  </p> */}
                   <Button onClick={initializeGame} size="sm" variant="outline" disabled={attemptsLeft - 1 <= 0}>
                     Play Again ({attemptsLeft - 1} trials left)
                   </Button>
@@ -294,9 +294,9 @@ const MemoryGame = ({ onWin }) => {
                 <div className="p-4 bg-red-50 rounded-lg">
                   <h3 className="text-lg font-bold text-red-700 mb-2">😢 Game Over</h3>
                   <p className="text-gray-700 mb-2">You used {moves} moves. Try again!</p>
-                  <p className="text-sm text-purple-600 mb-3">
+                  {/* <p className="text-sm text-purple-600 mb-3">
                     Trials left: {attemptsLeft - 1}
-                  </p>
+                  </p> */}
                   <Button 
                     onClick={initializeGame} 
                     size="sm" 
