@@ -2,53 +2,63 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useDiscounts } from '../../context/DiscountContext';
 import { db } from '../../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import GlassCard from '../ui/GlassCard';
 import Button from '../ui/Button';
-import { SparklesIcon } from '@heroicons/react/24/outline';
+import Modal from '../ui/Modal';
+import { SparklesIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 const SpinWheel = ({ onWin }) => {
   const { user } = useAuth();
   const { addDiscount } = useDiscounts();
-  const [spinsLeft, setSpinsLeft] = useState(3);
+  const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [segments, setSegments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
 
-  // Default prizes if none in database
+  // Default prizes
   const defaultSegments = [
-    { label: '10% OFF', value: 10, color: '#FF6B6B', icon: '🎁', probability: 15, type: 'percentage' },
-    { label: '15% OFF', value: 15, color: '#4ECDC4', icon: '🎉', probability: 12, type: 'percentage' },
-    { label: '20% OFF', value: 20, color: '#45B7D1', icon: '⭐', probability: 10, type: 'percentage' },
-    { label: 'FREE DELIVERY', value: 'free', color: '#96CEB4', icon: '🚚', probability: 10, type: 'free' },
-    { label: '5% OFF', value: 5, color: '#FFE194', icon: '🎯', probability: 20, type: 'percentage' },
-    { label: '25% OFF', value: 25, color: '#D4A5A5', icon: '🏆', probability: 8, type: 'percentage' },
-    { label: 'BUY 1 GET 1', value: 'bogo', color: '#9B59B6', icon: '🎪', probability: 5, type: 'bogo' },
-    { label: 'TRY AGAIN', value: 0, color: '#95A5A6', icon: '🔄', probability: 20, type: 'tryagain' },
+    { label: '15% OFF', value: 15, color: '#FF6B6B', icon: '🏆', probability: 20 },
+    { label: '10% OFF', value: 10, color: '#4ECDC4', icon: '🎯', probability: 30 },
+    { label: '5% OFF', value: 5, color: '#45B7D1', icon: '🎁', probability: 50 },
   ];
 
-  // Load prizes from Firebase
+  // Check if user has already spun
   useEffect(() => {
-    loadPrizes();
-    
-    // Load spins left from localStorage
-    const savedSpins = localStorage.getItem(`spinWheel_${user?.uid}`);
-    if (savedSpins) {
-      setSpinsLeft(parseInt(savedSpins));
-    }
+    const checkUserSpin = async () => {
+      if (!user) return;
+      
+      try {
+        const spinRef = doc(db, 'wheel_spins', user.uid);
+        const spinDoc = await getDoc(spinRef);
+        
+        if (spinDoc.exists()) {
+          setHasSpun(true);
+          if (spinDoc.data().prize) {
+            setResult(spinDoc.data().prize);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking spin status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserSpin();
   }, [user]);
 
-  // Save spins left to localStorage
+  // Load prizes from Firebase or use defaults
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(`spinWheel_${user?.uid}`, spinsLeft.toString());
-    }
-  }, [spinsLeft, user]);
+    loadPrizes();
+  }, []);
 
   const loadPrizes = async () => {
     try {
@@ -161,9 +171,14 @@ const SpinWheel = ({ onWin }) => {
     return 0;
   };
 
-  const spin = () => {
-    if (spinsLeft <= 0) {
-      toast.error('No spins left for today! Come back tomorrow.');
+  const spin = async () => {
+    if (!user) {
+      toast.error('Please login to spin');
+      return;
+    }
+
+    if (hasSpun) {
+      toast.error('You have already used your one spin!');
       return;
     }
 
@@ -172,6 +187,7 @@ const SpinWheel = ({ onWin }) => {
     setIsSpinning(true);
     setShowResult(false);
     
+    // Generate random final rotation
     const spins = 5 + Math.floor(Math.random() * 5);
     const randomOffset = Math.random() * 360;
     const targetRotation = rotation + (spins * 360) + randomOffset;
@@ -192,115 +208,209 @@ const SpinWheel = ({ onWin }) => {
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        setIsSpinning(false);
-        
-        const segmentIndex = getSegmentFromRotation(targetRotation);
-        const prize = segments[segmentIndex];
-        
-        setResult(prize);
-        setShowResult(true);
-        setSpinsLeft(prev => prev - 1);
-        
-        // Save discount to user's account
-        if (prize.type !== 'tryagain') {
-          addDiscount({
-            type: prize.type,
-            value: prize.value,
-            label: prize.label,
-            source: 'spinwheel'
-          }).then(discount => {
+        // Spin complete - use an async function inside
+        (async () => {
+          try {
+            // Get the prize
+            const segmentIndex = getSegmentFromRotation(targetRotation);
+            const prize = segments[segmentIndex];
+            
+            setResult(prize);
+            setShowResult(true);
+            setHasSpun(true);
+            
+            // Save spin record
+            try {
+              await setDoc(doc(db, 'wheel_spins', user.uid), {
+                userId: user.uid,
+                spunAt: new Date().toISOString(),
+                prize: prize
+              });
+            } catch (error) {
+              console.error('Error saving spin record:', error);
+            }
+            
+            // Save discount to user's account
+            const prizeData = {
+              type: 'percentage',
+              value: prize.value,
+              label: prize.label,
+              source: 'spinwheel'
+            };
+
+            const discount = await addDiscount(prizeData);
             if (discount) {
-              toast.success(`🎉 You won ${prize.label}! Check your discounts in cart.`);
+              toast.success(`🎉 You won ${prize.label}! Check your coupons in cart.`);
               if (onWin) onWin(discount);
             }
-          });
-        } else {
-          toast('Better luck next time!', { icon: '🎯' });
-        }
+            
+            setIsSpinning(false);
+          } catch (error) {
+            console.error('Error in spin completion:', error);
+            setIsSpinning(false);
+          }
+        })();
       }
     };
 
     animationRef.current = requestAnimationFrame(animate);
   };
 
+  if (loading) {
+    return (
+      <GlassCard className="p-6">
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </GlassCard>
+    );
+  }
+
   return (
-    <GlassCard className="p-6 relative overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center">
-          <SparklesIcon className="h-6 w-6 text-yellow-500 mr-2 animate-spin-slow" />
-          Lucky Spin Wheel
-        </h2>
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-          {spinsLeft} spin{spinsLeft !== 1 ? 's' : ''} left
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row items-center gap-8">
-        {/* Wheel */}
-        <div className="relative">
-          <canvas
-            ref={canvasRef}
-            width={300}
-            height={300}
-            className="w-[250px] h-[250px] md:w-[300px] md:h-[300px] drop-shadow-2xl"
-          />
-          
-          {/* Arrow */}
-          <div className="absolute -right-4 top-1/2 transform -translate-y-1/2">
-            <div className="w-0 h-0 border-t-[20px] border-t-transparent border-b-[20px] border-b-transparent border-r-[30px] border-r-red-500 filter drop-shadow-lg"></div>
+    <>
+      <GlassCard className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center">
+              <SparklesIcon className="h-6 w-6 text-yellow-500 mr-2" />
+              Spin & Win
+            </h2>
+            <button
+              onClick={() => setShowRules(true)}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Game Rules"
+            >
+              <InformationCircleIcon className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+          <div className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
+            {hasSpun ? 'Already Spun' : '1 Spin Available'}
           </div>
         </div>
 
-        {/* Info Panel */}
-        <div className="flex-1 text-center md:text-left">
-          <h3 className="text-lg font-semibold mb-2">Win Amazing Prizes!</h3>
-          <p className="text-gray-600 mb-4">
-            Spin the wheel and win discounts on ANY item!
-          </p>
-
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {segments.slice(0, 4).map((segment, idx) => (
-              <div key={idx} className="flex items-center space-x-1 text-sm">
-                <span>{segment.icon}</span>
-                <span>{segment.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <Button
-            onClick={spin}
-            disabled={isSpinning || spinsLeft === 0}
-            className={`w-full md:w-auto ${isSpinning ? 'animate-pulse' : ''}`}
-            size="lg"
-          >
-            {isSpinning ? 'Spinning...' : spinsLeft === 0 ? 'No Spins Left' : 'Spin Now!'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Result Modal */}
-      {showResult && result && result.type !== 'tryagain' && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <GlassCard className="p-8 max-w-md text-center">
+        {hasSpun && result ? (
+          <div className="text-center py-8">
             <div className="text-7xl mb-4 animate-bounce">
-              {result.icon}
+              {result.icon || '🎁'}
             </div>
-            <h3 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Congratulations!
+            <h3 className="text-2xl font-bold text-green-600 mb-2">
+              You Won {result.label}!
             </h3>
-            <p className="text-xl mb-4">
-              You won: <span className="font-bold text-primary-600">{result.label}</span>
-            </p>
             <p className="text-gray-600 mb-4">
-              This discount can be applied to ANY item in your cart!
+              Your discount coupon has been added to your account.
             </p>
-            <Button onClick={() => setShowResult(false)} size="lg">
-              Awesome!
+            <div className="bg-blue-50 p-4 rounded-lg max-w-md mx-auto">
+              <p className="text-sm text-blue-800">
+                <strong>How to use:</strong> Add any item to your cart and apply your coupon when prompted!
+              </p>
+            </div>
+          </div>
+        ) : hasSpun ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🎫</div>
+            <h3 className="text-xl font-bold text-gray-700 mb-2">You've Already Spun!</h3>
+            <p className="text-gray-500">One spin per account. Check your coupons in cart.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Wheel */}
+            <div className="relative">
+              <canvas
+                ref={canvasRef}
+                width={300}
+                height={300}
+                className="w-[250px] h-[250px] md:w-[300px] md:h-[300px] drop-shadow-2xl"
+              />
+              
+              {/* Arrow */}
+              <div className="absolute -right-4 top-1/2 transform -translate-y-1/2">
+                <div className="w-0 h-0 border-t-[20px] border-t-transparent border-b-[20px] border-b-transparent border-r-[30px] border-r-red-500 filter drop-shadow-lg"></div>
+              </div>
+            </div>
+
+            {/* Info Panel */}
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-lg font-semibold mb-2">Win Amazing Discounts!</h3>
+              <p className="text-gray-600 mb-4">
+                One spin per account. Win coupons you can use on any item!
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {segments.map((segment, idx) => (
+                  <div key={idx} className="text-center p-2 rounded-lg" style={{ backgroundColor: segment.color + '20' }}>
+                    <div className="text-2xl mb-1">{segment.icon}</div>
+                    <div className="text-sm font-semibold">{segment.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                onClick={spin}
+                disabled={isSpinning || hasSpun}
+                className={`w-full md:w-auto ${isSpinning ? 'animate-pulse' : ''}`}
+                size="lg"
+              >
+                {isSpinning ? 'Spinning...' : hasSpun ? 'Already Spun' : 'SPIN NOW!'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Rules Modal */}
+      <Modal
+        isOpen={showRules}
+        onClose={() => setShowRules(false)}
+        title="Spin Wheel Rules"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-blue-800 mb-2">📋 Game Rules</h3>
+            <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+              <li>Each student gets <span className="font-bold">only ONE spin</span> per account</li>
+              <li>Spin the wheel to win a discount coupon</li>
+              <li>Prizes are automatically added to your account</li>
+            </ul>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-green-800 mb-2">🏆 Prizes</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span>🏆 15% OFF</span>
+                <span className="font-bold text-green-600">20% chance</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>🎯 10% OFF</span>
+                <span className="font-bold text-green-600">30% chance</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>🎁 5% OFF</span>
+                <span className="font-bold text-green-600">50% chance</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <h3 className="font-semibold text-purple-800 mb-2">🎯 How to Use Your Prize</h3>
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+              <li>Coupon is automatically added to your account</li>
+              <li>When adding items to cart, you can apply your coupon</li>
+              <li>Discount applies to <span className="font-bold">one food item</span> only</li>
+              <li>The reduced price will be shown in your cart</li>
+              <li>Valid for <span className="font-bold">7 days</span> from winning</li>
+            </ul>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => setShowRules(false)} variant="primary">
+              Got It!
             </Button>
-          </GlassCard>
+          </div>
         </div>
-      )}
-    </GlassCard>
+      </Modal>
+    </>
   );
 };
 

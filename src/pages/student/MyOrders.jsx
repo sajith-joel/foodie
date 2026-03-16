@@ -68,16 +68,16 @@ const MyOrders = () => {
 
   if (error) {
     return (
-      <div className="container-custom py-8">
-        <GlassCard className="p-12 text-center">
+      <div className="container-custom py-4 sm:py-8">
+        <GlassCard className="p-6 sm:p-12 text-center">
           <div className="text-red-500 mb-4">
-            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-12 w-12 sm:h-16 sm:w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Orders</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Button onClick={loadOrders} variant="primary">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Error Loading Orders</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-6">{error}</p>
+          <Button onClick={loadOrders} variant="primary" size="sm" className="sm:w-auto">
             Try Again
           </Button>
         </GlassCard>
@@ -86,15 +86,17 @@ const MyOrders = () => {
   }
 
   return (
-    <div className="container-custom py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
+    <div className="container-custom py-4 sm:py-8">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Orders</h1>
         
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={loadOrders}
+            className="w-full sm:w-auto justify-center"
           >
             <ArrowPathIcon className="h-4 w-4 mr-2" />
             Refresh
@@ -103,7 +105,7 @@ const MyOrders = () => {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm sm:text-base"
           >
             {statuses.map(status => (
               <option key={status} value={status}>
@@ -114,23 +116,24 @@ const MyOrders = () => {
         </div>
       </div>
 
+      {/* Orders Grid */}
       {filteredOrders.length === 0 ? (
-        <GlassCard className="p-12 text-center">
-          <ClipboardDocumentListIcon className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">No orders found</h2>
-          <p className="text-gray-600 mb-6">
+        <GlassCard className="p-6 sm:p-12 text-center">
+          <ClipboardDocumentListIcon className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-gray-400 mb-4" />
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">No orders found</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-6">
             {filter === 'all' 
               ? "You haven't placed any orders yet." 
               : `No ${filter} orders found.`}
           </p>
           {filter === 'all' && (
-            <Button onClick={() => navigate('/menu')} variant="primary">
+            <Button onClick={() => navigate('/menu')} variant="primary" className="w-full sm:w-auto">
               Browse Menu
             </Button>
           )}
         </GlassCard>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4 sm:space-y-6">
           {filteredOrders.map(order => (
             <OrderCard key={order.id} order={order} role="student" />
           ))}
