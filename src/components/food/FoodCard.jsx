@@ -9,18 +9,15 @@ import toast from 'react-hot-toast';
 
 const FoodCard = ({ food }) => {
   const { addToCart } = useCart();
-  const { activeDiscounts, applyDiscount, refreshDiscounts } = useDiscounts();
+  const { activeDiscounts, applyDiscount } = useDiscounts();
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [selectedDiscount, setSelectedDiscount] = useState(null);
-  const [applying, setApplying] = useState(false);
 
-  const handleAddToCartClick = () => {
+  const handleAddToCart = () => {
     if (activeDiscounts.length > 0) {
       setShowDiscountModal(true);
     } else {
-      // No discounts, add normally
       addToCart({ 
         ...food, 
         quantity,
@@ -33,9 +30,6 @@ const FoodCard = ({ food }) => {
   };
 
   const handleApplyDiscount = async (discount) => {
-    setApplying(true);
-    setSelectedDiscount(discount);
-    
     try {
       const newPrice = await applyDiscount(discount.id, food.id, food.price);
       
@@ -55,14 +49,10 @@ const FoodCard = ({ food }) => {
         
         toast.success(`Applied ${discount.label} to ${food.name}!`);
         setShowDiscountModal(false);
-        await refreshDiscounts(); // Refresh to remove used discount
       }
     } catch (error) {
       console.error('Error applying discount:', error);
       toast.error('Failed to apply discount');
-    } finally {
-      setApplying(false);
-      setSelectedDiscount(null);
     }
   };
 
@@ -98,6 +88,7 @@ const FoodCard = ({ food }) => {
           <button
             onClick={() => setIsFavorite(!isFavorite)}
             className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             {isFavorite ? (
               <HeartSolidIcon className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
@@ -106,62 +97,82 @@ const FoodCard = ({ food }) => {
             )}
           </button>
 
-          {food.isVegetarian && (
-            <span className="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-              Veg
-            </span>
-          )}
+          {/* Food Type Tag - Shows both Veg and Non-Veg */}
+          <div className="absolute top-1 sm:top-2 left-1 sm:left-2">
+            {food.isVegetarian ? (
+              <span className="bg-green-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium flex items-center">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1"></span>
+                Veg
+              </span>
+            ) : (
+              <span className="bg-red-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium flex items-center">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full mr-1"></span>
+                Non-Veg
+              </span>
+            )}
+          </div>
 
           {/* Discount Available Badge */}
           {activeDiscounts.length > 0 && (
-            <span className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full animate-pulse flex items-center">
+            <span className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-purple-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full animate-pulse flex items-center">
               <span className="mr-1">🎁</span>
-              <span>{activeDiscounts.length} coupon{activeDiscounts.length > 1 ? 's' : ''}</span>
+              <span className="hidden xs:inline">Discount</span>
             </span>
           )}
         </div>
 
         <div className="p-3 sm:p-4">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800 line-clamp-1">
+          <div className="flex justify-between items-start mb-1 sm:mb-2">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800 line-clamp-1 pr-2">
               {food.name}
             </h3>
-            <span className="text-sm sm:text-base md:text-lg font-bold text-primary-600">
+            <span className="text-sm sm:text-base md:text-lg font-bold text-primary-600 whitespace-nowrap">
               ₹{food.price}
             </span>
           </div>
 
-          <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">
-            {food.description || 'No description'}
+          <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-2">
+            {food.description || 'No description available'}
           </p>
 
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium"
                 disabled={food.available === 0}
+                aria-label="Decrease quantity"
               >
                 -
               </button>
-              <span className="w-8 text-center font-medium">{quantity}</span>
+              <span className="w-6 sm:w-8 text-center text-sm sm:text-base font-medium">
+                {quantity}
+              </span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors text-sm sm:text-base font-medium"
                 disabled={quantity >= food.available}
+                aria-label="Increase quantity"
               >
                 +
               </button>
             </div>
-            <span className="text-xs text-gray-500">
-              {food.available > 0 ? `${food.available} left` : 'Out of stock'}
+            <span className="text-[10px] sm:text-xs text-gray-500">
+              {food.available > 0 ? (
+                <span className="flex items-center">
+                  <span className="hidden xs:inline">{food.available} left</span>
+                  <span className="xs:hidden">{food.available}</span>
+                </span>
+              ) : (
+                'Out of stock'
+              )}
             </span>
           </div>
 
           <Button
-            onClick={handleAddToCartClick}
+            onClick={handleAddToCart}
             disabled={food.available === 0}
-            className="w-full"
+            className="w-full text-xs sm:text-sm py-2 sm:py-2.5"
             size="sm"
           >
             {food.available === 0 ? 'Out of Stock' : 'Add to Cart'}
@@ -177,80 +188,62 @@ const FoodCard = ({ food }) => {
         size="lg"
       >
         <div className="space-y-4">
-          <p className="text-gray-600">
-            You have <span className="font-bold text-purple-600">{activeDiscounts.length}</span> active coupon
-            {activeDiscounts.length > 1 ? 's' : ''}! Apply one to this item:
+          <p className="text-sm text-gray-600">
+            You have {activeDiscounts.length} active coupon{activeDiscounts.length > 1 ? 's' : ''}! 
+            Apply one to this item to get a discount.
           </p>
 
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-2 max-h-60 overflow-y-auto">
             {activeDiscounts.map((discount) => {
               const discountedPrice = discount.type === 'percentage' 
                 ? food.price - (food.price * discount.value / 100)
                 : discount.value === 'free' ? 0 : food.price;
 
-              const savings = food.price - discountedPrice;
-
               return (
-                <div
+                <button
                   key={discount.id}
-                  className="border-2 rounded-lg p-4 hover:border-purple-500 transition-colors bg-white"
+                  onClick={() => handleApplyDiscount(discount)}
+                  className="w-full p-4 border-2 rounded-lg hover:border-purple-500 transition-colors text-left flex items-center justify-between bg-white hover:bg-purple-50"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-3xl">🎫</span>
-                        <div>
-                          <h3 className="font-bold text-lg text-purple-600">{discount.label}</h3>
-                          <p className="text-sm text-gray-500">
-                            Won on: {new Date(discount.createdAt).toLocaleDateString()}
-                          </p>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl">🎫</span>
+                      <div>
+                        <span className="font-bold text-purple-600 text-lg">{discount.label}</span>
+                        <div className="flex items-center mt-1 space-x-2">
+                          <span className="text-sm text-gray-500 line-through">₹{food.price}</span>
+                          <span className="text-sm font-bold text-green-600">→ ₹{discountedPrice}</span>
                         </div>
                       </div>
-                      
-                      <div className="mt-3 bg-gray-50 p-3 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Original price:</span>
-                          <span className="font-semibold">₹{food.price}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-green-600">
-                          <span>Discounted price:</span>
-                          <span className="font-bold text-lg">₹{discountedPrice}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-purple-600 border-t pt-2 mt-2">
-                          <span>You save:</span>
-                          <span className="font-bold">₹{savings}</span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-gray-400 mt-2">
-                        Expires: {new Date(discount.expiresAt).toLocaleDateString()}
-                      </p>
                     </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Expires: {new Date(discount.expiresAt).toLocaleDateString()}
+                    </p>
                   </div>
-
-                  <Button
-                    onClick={() => handleApplyDiscount(discount)}
-                    disabled={applying && selectedDiscount?.id === discount.id}
-                    className="w-full mt-3"
-                    size="sm"
-                  >
-                    {applying && selectedDiscount?.id === discount.id ? 'Applying...' : 'Use This Coupon'}
-                  </Button>
-                </div>
+                </button>
               );
             })}
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t">
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-xs text-blue-700">
+              <strong>💡 Tip:</strong> The discount will be applied to this item only. 
+              You can see the reduced price in your cart.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
             <Button
               variant="secondary"
               onClick={handleAddWithoutDiscount}
+              className="w-full sm:w-auto"
             >
-              Add Without Coupon
+              Add Without Discount
             </Button>
             <Button
               variant="primary"
               onClick={() => setShowDiscountModal(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>

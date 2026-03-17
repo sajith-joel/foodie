@@ -88,21 +88,20 @@ const ManageMenu = () => {
       const itemData = {
         ...formData,
         price: Number(formData.price),
-        available: formData.available ? Number(formData.available) : 0
+        available: formData.available ? Number(formData.available) : 0,
+        isVegetarian: formData.isVegetarian // Make sure this is included
       };
 
       if (editingItem) {
-        // Update existing item
         await updateMenuItem(editingItem.id, itemData);
         toast.success('Menu item updated successfully');
       } else {
-        // Add new item
         await addMenuItem(itemData);
         toast.success('Menu item added successfully');
       }
       
       setIsModalOpen(false);
-      fetchMenuItems(); // Refresh the list
+      fetchMenuItems();
       
     } catch (error) {
       console.error('Error saving menu item:', error);
@@ -117,7 +116,7 @@ const ManageMenu = () => {
       try {
         await deleteMenuItem(id);
         toast.success('Menu item deleted successfully');
-        fetchMenuItems(); // Refresh the list
+        fetchMenuItems();
       } catch (error) {
         console.error('Error deleting menu item:', error);
         toast.error('Failed to delete menu item');
@@ -328,7 +327,44 @@ const ManageMenu = () => {
             />
           </div>
 
-          <div className="flex items-center">
+          {/* Veg/Non-Veg Selection */}
+          <div className="border-t pt-4 mt-2">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Food Type *
+            </label>
+            <div className="flex items-center space-x-6">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="foodType"
+                  checked={formData.isVegetarian === true}
+                  onChange={() => setFormData({ ...formData, isVegetarian: true })}
+                  className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="flex items-center">
+                  <span className="w-4 h-4 bg-green-500 rounded-full mr-2"></span>
+                  <span className="text-sm font-medium text-gray-700">Vegetarian</span>
+                </span>
+              </label>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="foodType"
+                  checked={formData.isVegetarian === false}
+                  onChange={() => setFormData({ ...formData, isVegetarian: false })}
+                  className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="flex items-center">
+                  <span className="w-4 h-4 bg-red-500 rounded-full mr-2"></span>
+                  <span className="text-sm font-medium text-gray-700">Non-Vegetarian</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Optional: Keep the checkbox for backward compatibility */}
+          {/* <div className="flex items-center mt-4">
             <input
               type="checkbox"
               id="isVegetarian"
@@ -339,7 +375,7 @@ const ManageMenu = () => {
             <label htmlFor="isVegetarian" className="ml-2 text-sm text-gray-700">
               Vegetarian Item
             </label>
-          </div>
+          </div> */}
 
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-xs text-blue-700">
