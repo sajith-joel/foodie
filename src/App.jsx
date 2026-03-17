@@ -30,6 +30,7 @@ import UserSettings from './components/profile/UserSettings';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ManageSpinWheel from './pages/admin/ManageSpinWheel';
 import DeliveryOrderView from './pages/delivery/DeliveryOrderView';
+import TailwindTest from './TailwindTest';
 
 
 // Layout component
@@ -58,6 +59,8 @@ const Layout = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
+      // Add this route temporarily
+      <Route path="/tailwind-test" element={<TailwindTest />} />
       {/* Student Dashboard Route */}
       <Route path="/dashboard" element={
         <ProtectedRoute allowedRoles={['student']}>
