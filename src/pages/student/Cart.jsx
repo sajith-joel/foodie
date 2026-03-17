@@ -33,13 +33,21 @@ const Cart = () => {
   const [selectedLocation, setSelectedLocation] = useState('');
   const [customLocation, setCustomLocation] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pageLoaded, setPageLoaded] = useState(false);
   const navigate = useNavigate();
 
-  // Ensure cart is loaded
+  // Ensure component is mounted on client side
   useEffect(() => {
-    setIsLoading(false);
-  }, [cart]);
+    setPageLoaded(true);
+    console.log('Cart mounted, items:', cart.length);
+  }, []);
+
+  // Debug cart changes
+  useEffect(() => {
+    if (pageLoaded) {
+      console.log('Cart updated:', cart);
+    }
+  }, [cart, pageLoaded]);
 
   const subtotal = getCartTotal();
   const deliveryFee = 0;
@@ -152,14 +160,13 @@ const Cart = () => {
       const result = await createOrder(orderData);
       console.log('Order created successfully:', result);
 
-      // Send notification to admins
       try {
         await notifyNewOrder({
           id: result.id,
           total: total
         });
       } catch (notifyError) {
-        console.log('Notification error (non-blocking):', notifyError);
+        console.log('Notification error:', notifyError);
       }
 
       clearCart();
@@ -174,7 +181,8 @@ const Cart = () => {
     }
   };
 
-  if (isLoading) {
+  // Show loading until client-side mount
+  if (!pageLoaded) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -193,7 +201,6 @@ const Cart = () => {
             onClick={() => navigate('/menu')} 
             variant="primary" 
             className="w-full sm:w-auto"
-            style={{ WebkitAppearance: 'none' }}
           >
             Browse Menu
           </Button>
@@ -202,166 +209,161 @@ const Cart = () => {
     );
   }
 
+  // Simplified layout for iOS
   return (
     <div className="container-custom py-4 sm:py-8">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-8">Your Cart</h1>
 
-      {/* Main grid - use block on mobile, grid on desktop */}
-      <div className="block lg:grid lg:grid-cols-3 gap-4 sm:gap-8">
-        {/* Cart Items */}
-        <div className="lg:col-span-2 mb-4 lg:mb-0">
-          <GlassCard className="p-4 sm:p-6">
-            <div className="space-y-4">
-              {cart.map(item => (
-                <CartItem
-                  key={item.id}
-                  item={item}
-                  onUpdateQuantity={updateQuantity}
-                  onRemove={removeFromCart}
-                />
-              ))}
-            </div>
+      {/* Simple stacked layout - works better on iOS */}
+      <div className="space-y-4 sm:space-y-6">
+        {/* Cart Items Section */}
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="text-lg font-semibold mb-4">Cart Items</h2>
+          <div className="space-y-4">
+            {cart.map(item => (
+              <CartItem
+                key={item.id}
+                item={item}
+                onUpdateQuantity={updateQuantity}
+                onRemove={removeFromCart}
+              />
+            ))}
+          </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <span className="text-sm text-gray-600">
-                Total Items: <span className="font-semibold">{getItemCount()}</span>
-              </span>
-              <Button
-                variant="outline"
-                onClick={clearCart}
-                className="w-full sm:w-auto"
-                style={{ WebkitAppearance: 'none' }}
-              >
-                Clear Cart
-              </Button>
-            </div>
-          </GlassCard>
-        </div>
+          <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <span className="text-sm text-gray-600">
+              Total Items: <span className="font-semibold">{getItemCount()}</span>
+            </span>
+            <Button
+              variant="outline"
+              onClick={clearCart}
+              className="w-full sm:w-auto"
+            >
+              Clear Cart
+            </Button>
+          </div>
+        </GlassCard>
 
-        {/* Order Summary - stack below on mobile */}
-        <div className="lg:col-span-1">
-          <GlassCard className="p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Order Summary</h2>
+        {/* Order Summary Section */}
+        <GlassCard className="p-4 sm:p-6">
+          <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 
-            {/* Savings Banner */}
-            {totalSavings > 0 && (
-              <div className="bg-green-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-green-200">
-                <div className="flex items-start space-x-2 sm:space-x-3">
-                  <GiftIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-semibold text-green-700">🎉 You're Saving!</p>
-                    <p className="text-xs text-green-600 mt-1 break-words">
-                      Total savings: <span className="font-bold">₹{totalSavings}</span>
-                    </p>
-                    <p className="text-xs text-green-600 break-words">
-                      Original total: <span className="line-through">₹{originalTotal}</span>
-                    </p>
-                  </div>
+          {/* Savings Banner */}
+          {totalSavings > 0 && (
+            <div className="bg-green-50 p-3 rounded-lg mb-4 border border-green-200">
+              <div className="flex items-start space-x-2">
+                <GiftIcon className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-green-700">🎉 You're Saving!</p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Total savings: <span className="font-bold">₹{totalSavings}</span>
+                  </p>
+                  <p className="text-xs text-green-600">
+                    Original total: <span className="line-through">₹{originalTotal}</span>
+                  </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Delivery Location */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPinIcon className="h-4 w-4 inline mr-1" />
+              Delivery Location *
+            </label>
+
+            <select
+              value={selectedLocation}
+              onChange={handleLocationChange}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+              style={{ WebkitAppearance: 'menulist' }}
+            >
+              <option value="">Select a location</option>
+              {CAMPUS_LOCATIONS.map(location => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+              <option value="other">Other (Custom Location)</option>
+            </select>
+
+            {showCustomInput && (
+              <input
+                type="text"
+                value={customLocation}
+                onChange={(e) => setCustomLocation(e.target.value)}
+                placeholder="Enter your delivery location"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none mt-2 bg-white"
+              />
             )}
 
-            {/* Delivery Location Selection */}
-            <div className="mb-4 sm:mb-6">
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                <MapPinIcon className="h-4 w-4 inline mr-1" />
-                Delivery Location *
-              </label>
+            {selectedLocation && !showCustomInput && (
+              <p className="text-xs text-gray-500 mt-1">
+                {CAMPUS_LOCATIONS.find(l => l.id === selectedLocation)?.address}
+              </p>
+            )}
+          </div>
 
-              <select
-                value={selectedLocation}
-                onChange={handleLocationChange}
-                className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                style={{ WebkitAppearance: 'menulist' }}
-              >
-                <option value="">Select a location</option>
-                {CAMPUS_LOCATIONS.map(location => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-                <option value="other">Other (Custom Location)</option>
-              </select>
-
-              {showCustomInput && (
-                <input
-                  type="text"
-                  value={customLocation}
-                  onChange={(e) => setCustomLocation(e.target.value)}
-                  placeholder="Enter your delivery location"
-                  className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none mt-2"
-                  style={{ WebkitAppearance: 'none' }}
-                />
-              )}
-
-              {selectedLocation && !showCustomInput && (
-                <p className="text-xs text-gray-500 mt-1 break-words">
-                  {CAMPUS_LOCATIONS.find(l => l.id === selectedLocation)?.address}
-                </p>
-              )}
-            </div>
-
-            {/* Price Breakdown */}
-            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-              {originalTotal > subtotal && (
-                <div className="flex justify-between text-xs sm:text-sm text-gray-600">
-                  <span>Original Total</span>
-                  <span className="line-through">₹{originalTotal.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-xs sm:text-sm text-gray-600">
-                <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+          {/* Price Breakdown */}
+          <div className="space-y-2 mb-4">
+            {originalTotal > subtotal && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Original Total</span>
+                <span className="line-through text-gray-500">₹{originalTotal.toFixed(2)}</span>
               </div>
-              {totalSavings > 0 && (
-                <div className="flex justify-between text-xs sm:text-sm text-green-600">
-                  <span>Discount Savings</span>
-                  <span>-₹{totalSavings.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="border-t pt-2 sm:pt-3">
-                <div className="flex justify-between font-bold text-base sm:text-lg">
-                  <span>Total</span>
-                  <span className="text-primary-600">₹{total.toFixed(2)}</span>
-                </div>
+            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+            </div>
+            {totalSavings > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Discount Savings</span>
+                <span>-₹{totalSavings.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="border-t pt-2 mt-2">
+              <div className="flex justify-between font-bold text-base">
+                <span>Total</span>
+                <span className="text-primary-600">₹{total.toFixed(2)}</span>
               </div>
             </div>
+          </div>
 
-            {/* Payment Method */}
-            <div className="mb-4">
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                Payment Method
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                style={{ WebkitAppearance: 'menulist' }}
-              >
-                <option value="Cash">Cash on Delivery</option>
-                <option value="Online">Online Payment</option>
-                <option value="Card">Credit/Debit Card</option>
-              </select>
-            </div>
-
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full text-sm sm:text-base py-3"
-              onClick={handlePlaceOrder}
-              loading={placingOrder}
-              disabled={cart.length === 0}
-              style={{ WebkitAppearance: 'none' }}
+          {/* Payment Method */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Method
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+              style={{ WebkitAppearance: 'menulist' }}
             >
-              <CreditCardIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              {placingOrder ? 'Placing Order...' : 'Place Order'}
-            </Button>
+              <option value="Cash">Cash on Delivery</option>
+              <option value="Online">Online Payment</option>
+              <option value="Card">Credit/Debit Card</option>
+            </select>
+          </div>
 
-            <p className="text-xs text-gray-500 text-center mt-4">
-              By placing this order, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </GlassCard>
-        </div>
+          {/* Place Order Button */}
+          <Button
+            variant="primary"
+            className="w-full text-sm py-3"
+            onClick={handlePlaceOrder}
+            loading={placingOrder}
+            disabled={cart.length === 0}
+          >
+            <CreditCardIcon className="h-4 w-4 mr-2 inline" />
+            {placingOrder ? 'Placing Order...' : 'Place Order'}
+          </Button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            By placing this order, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </GlassCard>
       </div>
     </div>
   );
