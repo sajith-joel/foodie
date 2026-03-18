@@ -129,6 +129,102 @@ button, a, select, input {
 .animate-bounce {
   animation: bounce 1s infinite;
 }
+/* ===== iOS-SPECIFIC FIXES ===== */
+
+/* Fix for white background on iOS */
+@supports (-webkit-touch-callout: none) {
+  /* Ensure body has background */
+  body {
+    background-color: #f9fafb !important;
+    -webkit-background-color: #f9fafb !important;
+  }
+  
+  /* Fix for root element */
+  #root {
+    background-color: #f9fafb !important;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix for all containers */
+  div, section, main, article {
+    -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+  }
+  
+  /* Force background on all major containers */
+  .bg-gray-50,
+  .bg-white,
+  [class*="bg-"] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Fix for cart page specifically */
+  .cart-container,
+  .cart-items,
+  .cart-summary {
+    background-color: #ffffff !important;
+  }
+  
+  /* Ensure all text is visible */
+  * {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Fix for flexbox rendering */
+  .flex {
+    display: -webkit-flex;
+    display: flex;
+  }
+  
+  /* Fix for grid rendering */
+  .grid {
+    display: -webkit-grid;
+    display: grid;
+  }
+}
+
+/* Force hardware acceleration for iOS */
+.ios-accelerate {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+}
+
+/* Fix for white flash during navigation */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure cart page has background */
+.cart-page {
+  background-color: #f9fafb;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Fix for iOS input styles */
+input, select, textarea {
+  font-size: 16px !important; /* Prevents zoom on focus */
+  -webkit-appearance: none;
+  border-radius: 0.5rem;
+}
+
+/* Fix for sticky positioning */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Prevent text resize on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 /* iOS fixes */
 @supports (-webkit-touch-callout: none) {
@@ -141,4 +237,27 @@ button, a, select, input {
 .min-h-screen {
   min-height: 100vh;
   min-height: -webkit-fill-available;
+}
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Force background colors */
+  body, #root, .app, [class*="bg-gray-50"] {
+    background-color: #f9fafb !important;
+  }
+  
+  /* Fix for white flash */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure cart background */
+  .cart-page, [class*="cart"] {
+    background-color: #f9fafb;
+  }
+  
+  /* Fix for flexbox on iOS */
+  .flex {
+    display: -webkit-flex;
+    display: flex;
+  }
 }

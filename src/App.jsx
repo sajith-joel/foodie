@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { RoleProvider } from './context/RoleContext';
-import { DiscountProvider } from './context/DiscountContext'; // ✅ Import DiscountProvider
+import { DiscountProvider } from './context/DiscountContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
@@ -14,7 +14,7 @@ import { useRole } from './hooks/useRole';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Menu from './pages/student/Menu';
-import Cart from './pages/student/Cart';
+import Cart from './pages/student/Cart';  // ✅ Single import
 import MyOrders from './pages/student/MyOrders';
 import OrderTracking from './pages/student/OrderTracking';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -30,8 +30,7 @@ import UserSettings from './components/profile/UserSettings';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ManageSpinWheel from './pages/admin/ManageSpinWheel';
 import DeliveryOrderView from './pages/delivery/DeliveryOrderView';
-import TailwindTest from './TailwindTest';
-
+// Remove this line: import TailwindTest from './TailwindTest';
 
 // Layout component
 const Layout = ({ children }) => {
@@ -59,8 +58,6 @@ const Layout = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      // Add this route temporarily
-      <Route path="/tailwind-test" element={<TailwindTest />} />
       {/* Student Dashboard Route */}
       <Route path="/dashboard" element={
         <ProtectedRoute allowedRoles={['student']}>
@@ -85,7 +82,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Student Routes - only students can access */}
+      {/* Student Routes */}
       <Route path="/menu" element={
         <ProtectedRoute allowedRoles={['student']}>
           <Menu />
@@ -107,45 +104,39 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* Admin Routes - only admin can access */}
+      {/* Admin Routes */}
       <Route path="/admin" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminDashboard />
         </ProtectedRoute>
       } />
-
       <Route path="/admin/analytics" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminAnalytics />
         </ProtectedRoute>
       } />
-
       <Route path="/admin/menu" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageMenu />
         </ProtectedRoute>
       } />
-
       <Route path="/admin/delivery-boys" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageDeliveryBoys />
         </ProtectedRoute>
       } />
-
       <Route path="/admin/orders" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <OrdersManagement />
         </ProtectedRoute>
       } />
-
-      {/* Admin Spin Wheel Management Route */}
       <Route path="/admin/spin-wheel" element={
         <ProtectedRoute allowedRoles={['admin']}>
           <ManageSpinWheel />
         </ProtectedRoute>
       } />
 
-      {/* Delivery Routes - only delivery can access */}
+      {/* Delivery Routes */}
       <Route path="/delivery" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <DeliveryDashboard />
@@ -156,22 +147,18 @@ function AppRoutes() {
           <DeliveryOrderView />
         </ProtectedRoute>
       } />
-
-      {/* Assigned Orders List Route */}
       <Route path="/delivery/orders" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <AssignedOrders />
         </ProtectedRoute>
       } />
-
-      {/* Individual Order Tracking Route for Delivery */}
       <Route path="/delivery/orders/:orderId" element={
         <ProtectedRoute allowedRoles={['delivery']}>
           <OrderTracking />
         </ProtectedRoute>
       } />
 
-      {/* Default route - redirect to menu */}
+      {/* Default route */}
       <Route path="/" element={<Navigate to="/menu" replace />} />
 
       {/* 404 Route */}
@@ -184,7 +171,7 @@ function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <DiscountProvider> {/* ✅ Add DiscountProvider here */}
+        <DiscountProvider>
           <CartProvider>
             <AppRoutes />
           </CartProvider>
