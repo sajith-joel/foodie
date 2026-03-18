@@ -14,26 +14,70 @@ export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [permission, setPermission] = useState(Notification?.permission || 'default');
+  const [permission, setPermission] = useState('default');
   const [loading, setLoading] = useState(true);
+  const [notificationsSupported, setNotificationsSupported] = useState(true);
 
+  // Check if notifications are supported (runs once)
   useEffect(() => {
-    if (user) {
+    const checkSupport = () => {
+      if (typeof window === 'undefined') {
+        setNotificationsSupported(false);
+        return;
+      }
+      
+      const supported = typeof Notification !== 'undefined' && 'Notification' in window;
+      setNotificationsSupported(supported);
+      
+      if (!supported) {
+        console.log('ℹ️ Notifications not supported on this device');
+        setLoading(false);
+      }
+    };
+    
+    checkSupport();
+  }, []);
+
+  // Initialize notifications only if supported
+  useEffect(() => {
+    if (user && notificationsSupported) {
       initializeNotifications();
+    } else if (user && !notificationsSupported) {
+      // Still load Firestore notifications even if push not supported
+      loadFirestoreNotifications();
     }
-  }, [user]);
+  }, [user, notificationsSupported]);
 
-  useEffect(() => {
+  const loadFirestoreNotifications = async () => {
     if (!user) return;
-
-    // Listen for Firestore notifications
-    const unsubscribeFirestore = getUserNotifications(user.uid, (newNotifications) => {
+    
+    const unsubscribe = getUserNotifications(user.uid, (newNotifications) => {
       setNotifications(newNotifications);
       setUnreadCount(newNotifications.filter(n => !n.read).length);
       setLoading(false);
     });
+    
+    return () => unsubscribe();
+  };
 
-    // Listen for foreground messages
+  const initializeNotifications = async () => {
+    const result = await requestNotificationPermission(user.uid, user.role);
+    if (result.success) {
+      if (result.notificationsSupported !== false) {
+        setPermission('granted');
+      }
+    } else {
+      setPermission('denied');
+    }
+    
+    // Always load Firestore notifications
+    loadFirestoreNotifications();
+  };
+
+  // Listen for foreground messages (only if supported)
+  useEffect(() => {
+    if (!user || !notificationsSupported) return;
+
     onMessageListener()
       .then((payload) => {
         console.log('New notification received:', payload);
@@ -53,20 +97,9 @@ export const useNotifications = () => {
       .catch(err => console.log('Message listener error:', err));
 
     return () => {
-      if (unsubscribeFirestore) {
-        unsubscribeFirestore();
-      }
+      // Clean up if needed
     };
-  }, [user]);
-
-  const initializeNotifications = async () => {
-    const result = await requestNotificationPermission(user.uid, user.role);
-    if (result.success) {
-      setPermission('granted');
-    } else {
-      setPermission('denied');
-    }
-  };
+  }, [user, notificationsSupported]);
 
   const markAsRead = async (notificationId) => {
     const result = await markNotificationAsRead(notificationId);
@@ -93,37 +126,8 @@ export const useNotifications = () => {
     setUnreadCount(0);
   };
 
-  // Send notification to admins about new order
-  const notifyNewOrder = async (orderData) => {
-    if (user?.role !== 'student') {
-      console.log('Only students can send order notifications');
-      return { success: false, error: 'Not authorized' };
-    }
-    
-    try {
-      const result = await sendNotificationToAdmins({
-        title: '🆕 New Order Placed',
-        body: `Order #${orderData.id} - ₹${orderData.total} by ${user?.email || 'Student'}`
-      }, {
-        type: 'new_order',
-        orderId: orderData.id,
-        customerEmail: user?.email,
-        customerName: user?.displayName || user?.email?.split('@')[0],
-        amount: orderData.total,
-        timestamp: new Date().toISOString()
-      });
-      
-      console.log('New order notification sent:', result);
-      return result;
-    } catch (error) {
-      console.error('Error in notifyNewOrder:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
   const notifyDeliveryAssigned = async (deliveryUserId, orderData) => {
     if (user?.role !== 'admin') {
-      console.log('Only admins can send delivery assignments');
       return { success: false, error: 'Not authorized' };
     }
     
@@ -172,16 +176,41 @@ export const useNotifications = () => {
     }
   };
 
+  const notifyNewOrder = async (orderData) => {
+    if (user?.role !== 'student') {
+      return { success: false, error: 'Not authorized' };
+    }
+    
+    try {
+      const result = await sendNotificationToAdmins({
+        title: '🆕 New Order Placed',
+        body: `Order #${orderData.id} - ₹${orderData.total} by ${user?.email || 'Student'}`
+      }, {
+        type: 'new_order',
+        orderId: orderData.id,
+        customerEmail: user?.email,
+        customerName: user?.displayName || user?.email?.split('@')[0],
+        amount: orderData.total
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('Error in notifyNewOrder:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   return {
     notifications,
     unreadCount,
     permission,
     loading,
+    notificationsSupported,
     markAsRead,
     markAllAsRead,
     requestPermission: initializeNotifications,
-    notifyNewOrder,
     notifyDeliveryAssigned,
-    notifyOrderStatus
+    notifyOrderStatus,
+    notifyNewOrder
   };
 };
