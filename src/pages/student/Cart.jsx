@@ -36,18 +36,65 @@ const Cart = () => {
   const [pageLoaded, setPageLoaded] = useState(false);
   const navigate = useNavigate();
 
-  // Ensure component is mounted on client side
+  // ===== DEBUGGING CODE FOR IPHONE =====
+  // This will show alerts on iPhone to help debug the cart issue
   useEffect(() => {
-    setPageLoaded(true);
-    console.log('Cart mounted, items:', cart.length);
-  }, []);
+    // Store original console.log
+    const originalLog = console.log;
+    
+    // Override console.log to show alerts
+    console.log = function (...args) {
+      originalLog.apply(console, args);
+      // Only show important logs as alerts, not every single log
+      if (args[0] && typeof args[0] === 'string' && 
+          (args[0].includes('cart') || args[0].includes('error') || args[0].includes('Cart'))) {
+        alert(`📋 ${args.join(' ')}`);
+      }
+    };
 
-  // Debug cart changes
+    // Catch all JavaScript errors
+    window.onerror = function (msg, url, line, col, error) {
+      alert(`❌ ERROR: ${msg}\nLine: ${line}\nFile: ${url?.split('/').pop()}`);
+      return true; // Prevents default error handling
+    };
+
+    // Catch unhandled promise rejections
+    window.onunhandledrejection = function (event) {
+      alert(`❌ PROMISE ERROR: ${event.reason}`);
+    };
+
+    // Log when component mounts
+    alert('✅ Cart component mounted');
+    alert(`👤 User: ${user ? user.email : 'Not logged in'}`);
+    alert(`🛒 Initial cart has ${cart.length} items`);
+
+    // Check if DOM elements are rendering
+    setTimeout(() => {
+      const cartItems = document.querySelectorAll('[data-testid="cart-item"]');
+      const buttons = document.querySelectorAll('button');
+      alert(`📊 DOM Check: ${cartItems.length} cart items, ${buttons.length} buttons found`);
+    }, 500);
+
+    return () => {
+      // Restore original console.log
+      console.log = originalLog;
+      alert('📴 Cart component unmounting');
+    };
+  }, []); // Empty dependency array = runs once on mount
+
+  // Track cart changes
   useEffect(() => {
     if (pageLoaded) {
-      console.log('Cart updated:', cart);
+      alert(`🔄 Cart updated: ${cart.length} items, total: ₹${getCartTotal()}`);
     }
-  }, [cart, pageLoaded]);
+  }, [cart, getCartTotal, pageLoaded]);
+
+  // Track component render
+  useEffect(() => {
+    setPageLoaded(true);
+    alert('📄 Cart component rendered');
+  }, []);
+  // ===== END DEBUGGING CODE =====
 
   const subtotal = getCartTotal();
   const deliveryFee = 0;
@@ -70,6 +117,7 @@ const Cart = () => {
   const handleLocationChange = (e) => {
     const value = e.target.value;
     setSelectedLocation(value);
+    alert(`📍 Location selected: ${value}`); // Debug alert
 
     if (value === 'other') {
       setShowCustomInput(true);
@@ -104,22 +152,28 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
+    alert('🛒 Place order button clicked'); // Debug alert
+
     if (!user) {
+      alert('❌ No user logged in');
       toast.error('Please login to place order');
       navigate('/login');
       return;
     }
 
     if (cart.length === 0) {
+      alert('❌ Cart is empty');
       toast.error('Your cart is empty');
       return;
     }
 
     if (!validateOrder()) {
+      alert('❌ Location validation failed');
       return;
     }
 
     setPlacingOrder(true);
+    alert('⏳ Placing order...');
 
     try {
       const deliveryAddress = getDeliveryAddress();
@@ -155,25 +209,29 @@ const Cart = () => {
         createdAt: new Date().toISOString()
       };
 
-      console.log('Placing order with data:', orderData);
+      alert(`📦 Order data prepared: ${orderData.items.length} items, total: ₹${total}`);
 
       const result = await createOrder(orderData);
-      console.log('Order created successfully:', result);
+      alert(`✅ Order created successfully! ID: ${result.id}`);
 
       try {
         await notifyNewOrder({
           id: result.id,
           total: total
         });
+        alert('🔔 Notification sent to admins');
       } catch (notifyError) {
+        alert(`⚠️ Notification error: ${notifyError.message}`);
         console.log('Notification error:', notifyError);
       }
 
       clearCart();
       toast.success('Order placed successfully!');
+      alert('🎉 Order placed! Redirecting...');
       navigate('/my-orders');
 
     } catch (error) {
+      alert(`❌ Order error: ${error.message}`);
       console.error('Order placement error:', error);
       toast.error(error.message || 'Failed to place order. Please try again.');
     } finally {
@@ -181,15 +239,7 @@ const Cart = () => {
     }
   };
 
-  // Show loading until client-side mount
-  if (!pageLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
+  // Add data-testid attributes for DOM debugging
   if (cart.length === 0) {
     return (
       <div className="container-custom py-8 sm:py-16">
@@ -201,6 +251,7 @@ const Cart = () => {
             onClick={() => navigate('/menu')} 
             variant="primary" 
             className="w-full sm:w-auto"
+            data-testid="browse-menu-button"
           >
             Browse Menu
           </Button>
@@ -209,35 +260,36 @@ const Cart = () => {
     );
   }
 
-  // Simplified layout for iOS
   return (
-    <div className="container-custom py-4 sm:py-8">
+    <div className="container-custom py-4 sm:py-8" data-testid="cart-container">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-8">Your Cart</h1>
 
       {/* Simple stacked layout - works better on iOS */}
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6" data-testid="cart-content">
         {/* Cart Items Section */}
-        <GlassCard className="p-4 sm:p-6">
+        <GlassCard className="p-4 sm:p-6" data-testid="cart-items-section">
           <h2 className="text-lg font-semibold mb-4">Cart Items</h2>
-          <div className="space-y-4">
+          <div className="space-y-4" data-testid="cart-items-list">
             {cart.map(item => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onUpdateQuantity={updateQuantity}
-                onRemove={removeFromCart}
-              />
+              <div key={item.id} data-testid={`cart-item-${item.id}`}>
+                <CartItem
+                  item={item}
+                  onUpdateQuantity={updateQuantity}
+                  onRemove={removeFromCart}
+                />
+              </div>
             ))}
           </div>
 
           <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
             <span className="text-sm text-gray-600">
-              Total Items: <span className="font-semibold">{getItemCount()}</span>
+              Total Items: <span className="font-semibold" data-testid="total-items">{getItemCount()}</span>
             </span>
             <Button
               variant="outline"
               onClick={clearCart}
               className="w-full sm:w-auto"
+              data-testid="clear-cart-button"
             >
               Clear Cart
             </Button>
@@ -245,12 +297,12 @@ const Cart = () => {
         </GlassCard>
 
         {/* Order Summary Section */}
-        <GlassCard className="p-4 sm:p-6">
+        <GlassCard className="p-4 sm:p-6" data-testid="order-summary-section">
           <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 
           {/* Savings Banner */}
           {totalSavings > 0 && (
-            <div className="bg-green-50 p-3 rounded-lg mb-4 border border-green-200">
+            <div className="bg-green-50 p-3 rounded-lg mb-4 border border-green-200" data-testid="savings-banner">
               <div className="flex items-start space-x-2">
                 <GiftIcon className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -278,6 +330,7 @@ const Cart = () => {
               onChange={handleLocationChange}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
               style={{ WebkitAppearance: 'menulist' }}
+              data-testid="location-select"
             >
               <option value="">Select a location</option>
               {CAMPUS_LOCATIONS.map(location => (
@@ -295,6 +348,7 @@ const Cart = () => {
                 onChange={(e) => setCustomLocation(e.target.value)}
                 placeholder="Enter your delivery location"
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none mt-2 bg-white"
+                data-testid="custom-location-input"
               />
             )}
 
@@ -315,7 +369,7 @@ const Cart = () => {
             )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+              <span className="font-medium" data-testid="subtotal">₹{subtotal.toFixed(2)}</span>
             </div>
             {totalSavings > 0 && (
               <div className="flex justify-between text-sm text-green-600">
@@ -326,7 +380,7 @@ const Cart = () => {
             <div className="border-t pt-2 mt-2">
               <div className="flex justify-between font-bold text-base">
                 <span>Total</span>
-                <span className="text-primary-600">₹{total.toFixed(2)}</span>
+                <span className="text-primary-600" data-testid="total">₹{total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -341,6 +395,7 @@ const Cart = () => {
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
               style={{ WebkitAppearance: 'menulist' }}
+              data-testid="payment-method-select"
             >
               <option value="Cash">Cash on Delivery</option>
               <option value="Online">Online Payment</option>
@@ -355,6 +410,7 @@ const Cart = () => {
             onClick={handlePlaceOrder}
             loading={placingOrder}
             disabled={cart.length === 0}
+            data-testid="place-order-button"
           >
             <CreditCardIcon className="h-4 w-4 mr-2 inline" />
             {placingOrder ? 'Placing Order...' : 'Place Order'}
