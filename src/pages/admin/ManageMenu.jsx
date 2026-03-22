@@ -19,10 +19,16 @@ const ManageMenu = () => {
     category: '',
     image: '',
     isVegetarian: false,
-    available: ''
+    available: '',
+    status: 'available' // available, coming_soon, sold_out
   });
 
   const categories = ['breakfast', 'lunch', 'dinner', 'snacks', 'beverages', 'desserts'];
+  const statusOptions = [
+    { value: 'available', label: 'Available', color: 'green', description: 'Item is in stock and can be ordered' },
+    { value: 'coming_soon', label: 'Coming Soon', color: 'yellow', description: 'Item will be available later (e.g., 10 AM)' },
+    { value: 'sold_out', label: 'Sold Out', color: 'red', description: 'Item is out of stock' }
+  ];
 
   useEffect(() => {
     fetchMenuItems();
@@ -51,7 +57,8 @@ const ManageMenu = () => {
         category: item.category || '',
         image: item.image || '',
         isVegetarian: item.isVegetarian || false,
-        available: item.available || ''
+        available: item.available || '',
+        status: item.status || 'available'
       });
     } else {
       setEditingItem(null);
@@ -62,7 +69,8 @@ const ManageMenu = () => {
         category: '',
         image: '',
         isVegetarian: false,
-        available: ''
+        available: '',
+        status: 'available'
       });
     }
     setIsModalOpen(true);
@@ -89,7 +97,8 @@ const ManageMenu = () => {
         ...formData,
         price: Number(formData.price),
         available: formData.available ? Number(formData.available) : 0,
-        isVegetarian: formData.isVegetarian // Make sure this is included
+        isVegetarian: formData.isVegetarian,
+        status: formData.status // Make sure status is included
       };
 
       if (editingItem) {
@@ -121,6 +130,25 @@ const ManageMenu = () => {
         console.error('Error deleting menu item:', error);
         toast.error('Failed to delete menu item');
       }
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'coming_soon':
+        return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">⏰ Coming Soon</span>;
+      case 'sold_out':
+        return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">❌ Sold Out</span>;
+      default:
+        return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">✅ Available</span>;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'coming_soon': return 'border-yellow-400 bg-yellow-50';
+      case 'sold_out': return 'border-red-400 bg-red-50';
+      default: return 'border-green-400 bg-green-50';
     }
   };
 
@@ -178,9 +206,10 @@ const ManageMenu = () => {
                   <th className="text-left py-3 px-4">Category</th>
                   <th className="text-left py-3 px-4">Price</th>
                   <th className="text-left py-3 px-4">Available</th>
+                  <th className="text-left py-3 px-4">Status</th>
                   <th className="text-left py-3 px-4">Type</th>
                   <th className="text-left py-3 px-4">Actions</th>
-                </tr>
+                 </tr>
               </thead>
               <tbody>
                 {menuItems.map((item) => (
@@ -215,6 +244,9 @@ const ManageMenu = () => {
                       }`}>
                         {item.available > 0 ? `${item.available} in stock` : 'Out of stock'}
                       </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {getStatusBadge(item.status)}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
@@ -327,8 +359,51 @@ const ManageMenu = () => {
             />
           </div>
 
+          {/* Item Status Selection - New Section */}
+          <div className="border-t pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Item Status *
+            </label>
+            <div className="space-y-3">
+              {statusOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-start p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    formData.status === option.value
+                      ? `${getStatusColor(option.value)} border-2`
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="status"
+                    value={option.value}
+                    checked={formData.status === option.value}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="mt-1 mr-3"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center">
+                      <span className={`font-semibold ${
+                        option.value === 'coming_soon' ? 'text-yellow-600' :
+                        option.value === 'sold_out' ? 'text-red-600' :
+                        'text-green-600'
+                      }`}>
+                        {option.label}
+                      </span>
+                      {formData.status === option.value && (
+                        <span className="ml-2 text-xs text-green-600">✓ Selected</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Veg/Non-Veg Selection */}
-          <div className="border-t pt-4 mt-2">
+          <div className="border-t pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Food Type *
             </label>
@@ -363,23 +438,12 @@ const ManageMenu = () => {
             </div>
           </div>
 
-          {/* Optional: Keep the checkbox for backward compatibility */}
-          {/* <div className="flex items-center mt-4">
-            <input
-              type="checkbox"
-              id="isVegetarian"
-              checked={formData.isVegetarian}
-              onChange={(e) => setFormData({ ...formData, isVegetarian: e.target.checked })}
-              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            <label htmlFor="isVegetarian" className="ml-2 text-sm text-gray-700">
-              Vegetarian Item
-            </label>
-          </div> */}
-
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-xs text-blue-700">
-              <strong>Note:</strong> Fields marked with * are required.
+              <strong>📋 Status Guide:</strong><br/>
+              • <strong>Available</strong> - Item is ready to order<br/>
+              • <strong>Coming Soon</strong> - Show "Coming Soon" badge (for items arriving later)<br/>
+              • <strong>Sold Out</strong> - Show "Sold Out" badge (for items out of stock)
             </p>
           </div>
 
