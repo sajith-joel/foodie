@@ -85,7 +85,7 @@ const Register = () => {
         <div className="text-center mb-8">
           <img src={logo} alt="Campus Food" className="h-16 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-white">Create Account</h2>
-          <p className="text-gray-200 mt-2">Join Campus Food today</p>
+          <p className="text-gray-200 mt-2">Join Chill X Play Zone today</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

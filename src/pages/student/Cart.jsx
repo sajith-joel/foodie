@@ -329,9 +329,7 @@ const Cart = () => {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
               style={{ WebkitAppearance: 'menulist' }}
             >
-              <option value="Cash">Cash on Delivery</option>
-              <option value="Online">Online Payment</option>
-              <option value="Card">Credit/Debit Card</option>
+              <option value="Cash">Cash on Delivery or UPI</option>
             </select>
           </div>
 

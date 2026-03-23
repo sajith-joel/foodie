@@ -39,7 +39,8 @@ const Login = () => {
         <div className="text-center mb-8">
           <img src={logo} alt="Campus Food" className="h-16 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-          <p className="text-gray-200 mt-2">Sign in to continue to Campus Food</p>
+          <p className="text-gray-200 mt-2">Sign in to continue to Chill X Play Zone</p>
+          <p>By IT Chokanzz</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
