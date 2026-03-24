@@ -78,18 +78,19 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-primary-900 to-primary-600">
+    <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-primary-900 to-primary-600 py-6 sm:py-8 md:py-12">
       <div className="absolute inset-0 bg-black bg-opacity-30" />
       
-      <GlassCard className="w-full max-w-2xl p-8 relative z-10" opacity={30} blur="lg">
-        <div className="text-center mb-8">
-          <img src={logo} alt="Campus Food" className="h-16 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-white">Create Account</h2>
-          <p className="text-gray-200 mt-2">Join Chill X Play Zone today</p>
+      <GlassCard className="w-full max-w-[95%] sm:max-w-xl md:max-w-2xl p-4 sm:p-6 md:p-8 relative z-10 mx-auto" opacity={30} blur="lg">
+        <div className="text-center mb-4 sm:mb-6 md:mb-8">
+          <img src={logo} alt="Campus Food" className="h-12 sm:h-14 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4" />
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Create Account</h2>
+          <p className="text-xs sm:text-sm md:text-base text-gray-200 mt-1 sm:mt-2">Join CHILL X PlayZ today</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
+          {/* Form Fields - Responsive Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             <Input
               label="Full Name"
               type="text"
@@ -99,7 +100,8 @@ const Register = () => {
               icon={UserIcon}
               placeholder="Enter your full name"
               required
-              className="bg-white bg-opacity-90"
+              className="bg-white bg-opacity-90 text-sm sm:text-base"
+              labelClassName="text-xs sm:text-sm"
             />
 
             <Input
@@ -111,7 +113,8 @@ const Register = () => {
               icon={EnvelopeIcon}
               placeholder="Enter your email"
               required
-              className="bg-white bg-opacity-90"
+              className="bg-white bg-opacity-90 text-sm sm:text-base"
+              labelClassName="text-xs sm:text-sm"
             />
 
             <Input
@@ -123,7 +126,8 @@ const Register = () => {
               icon={PhoneIcon}
               placeholder="Enter your phone number"
               required
-              className="bg-white bg-opacity-90"
+              className="bg-white bg-opacity-90 text-sm sm:text-base"
+              labelClassName="text-xs sm:text-sm"
             />
 
             {formData.role === 'student' && (
@@ -134,8 +138,9 @@ const Register = () => {
                 value={formData.studentId}
                 onChange={handleChange}
                 placeholder="Enter your student ID"
-                required
-                className="bg-white bg-opacity-90"
+                // required
+                className="bg-white bg-opacity-90 text-sm sm:text-base"
+                labelClassName="text-xs sm:text-sm"
               />
             )}
 
@@ -148,7 +153,8 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="e.g., DL-01-AB-1234"
                 required
-                className="bg-white bg-opacity-90"
+                className="bg-white bg-opacity-90 text-sm sm:text-base"
+                labelClassName="text-xs sm:text-sm"
               />
             )}
 
@@ -161,7 +167,8 @@ const Register = () => {
               icon={LockClosedIcon}
               placeholder="Create password (min. 6 characters)"
               required
-              className="bg-white bg-opacity-90"
+              className="bg-white bg-opacity-90 text-sm sm:text-base"
+              labelClassName="text-xs sm:text-sm"
             />
 
             <Input
@@ -173,51 +180,57 @@ const Register = () => {
               icon={LockClosedIcon}
               placeholder="Confirm password"
               required
-              className="bg-white bg-opacity-90"
+              className="bg-white bg-opacity-90 text-sm sm:text-base"
+              labelClassName="text-xs sm:text-sm"
             />
           </div>
 
+          {/* Role Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1 sm:mb-2">
               Register as
             </label>
             <select
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200 bg-white bg-opacity-90"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all duration-200 bg-white bg-opacity-90"
             >
               <option value="student">Student</option>
               <option value="delivery">Delivery Partner</option>
             </select>
           </div>
 
-          <div className="bg-blue-900 bg-opacity-30 p-4 rounded-lg">
-            <p className="text-sm text-blue-200">
+          {/* Note Box */}
+          <div className="bg-blue-900 bg-opacity-30 p-3 sm:p-4 rounded-lg">
+            <p className="text-xs sm:text-sm text-blue-200">
               <strong>Note:</strong> If you're registering as a delivery partner, your account will need to be activated by an admin before you can start receiving deliveries.
             </p>
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full"
+            className="w-full text-sm sm:text-base py-2.5 sm:py-3"
             loading={loading}
           >
             Sign Up
           </Button>
 
-          <p className="text-center text-sm text-gray-200">
+          {/* Sign In Link */}
+          <p className="text-center text-xs sm:text-sm text-gray-200">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary-300 hover:text-primary-200 font-medium">
+            <Link to="/login" style={{ color: '#3139d2' }} className="text-primary-300 hover:text-primary-200 font-medium">
               Sign in
             </Link>
           </p>
         </form>
 
-        <div className="mt-6 pt-4 border-t border-white border-opacity-20">
-          <p className="text-xs text-center text-gray-300">
+        {/* Terms Footer */}
+        <div className="mt-4 sm:mt-5 md:mt-6 pt-3 sm:pt-4 border-t border-white border-opacity-20">
+          <p className="text-[10px] sm:text-xs text-center text-gray-300">
             By registering, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>

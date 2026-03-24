@@ -39,8 +39,8 @@ const Login = () => {
         <div className="text-center mb-8">
           <img src={logo} alt="Campus Food" className="h-16 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-white">Welcome Back</h2>
-          <p className="text-gray-200 mt-2">Sign in to continue to Chill X Play Zone</p>
-          <p>By IT Chokanzz</p>
+          <p className="text-gray-200 mt-2">Sign in to continue to CHILL X PlayZ</p>
+          <p style={{ color: '#c00a1f' }}>By IT Chokanzz</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -71,7 +71,7 @@ const Login = () => {
               <input type="checkbox" className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50" />
               <span className="ml-2 text-sm text-gray-200">Remember me</span>
             </label>
-            <Link to="/forgot-password" className="text-sm text-primary-300 hover:text-primary-200">
+            <Link to="/forgot-password" style={{ color: '#3139d2' }} className="text-sm text-primary-300 hover:text-primary-200">
               Forgot Password?
             </Link>
           </div>
@@ -88,7 +88,7 @@ const Login = () => {
 
           <p className="text-center text-sm text-gray-200">
             Don't have an account?{' '}
-            <Link to="/register" className="text-primary-300 hover:text-primary-200 font-medium">
+            <Link to="/register"  style={{ color: '#3139d2' }} className="text-primary-300 hover:text-primary-200 font-medium">
               Sign up
             </Link>
           </p>

@@ -11,7 +11,10 @@
     "seed": "node scripts/seed.js",
     "seed:admin": "node scripts/seed.js --only-admin",
     "seed:menu": "node scripts/seed.js --only-menu",
-    "seed:clean": "node scripts/seed.js --clean"
+    "seed:clean": "node scripts/seed.js --clean",
+    "clear-data": "node scripts/clearDemoData.js",
+    "clear-orders": "node scripts/clearOrders.js",
+    "reset-db": "npm run clear-data && npm run seed"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
