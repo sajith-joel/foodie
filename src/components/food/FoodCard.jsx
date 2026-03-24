@@ -13,24 +13,52 @@ const FoodCard = ({ food }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Determine item status based on admin settings
   const isAvailable = food.status === 'available' && food.available > 0;
   const isComingSoon = food.status === 'coming_soon';
   const isSoldOut = food.status === 'sold_out' || (!isComingSoon && food.available === 0);
+  const isNotDeliverable = food.status === 'not_deliverable';
+
+  const getButtonText = () => {
+    if (isComingSoon) return 'Coming Soon';
+    if (isSoldOut) return 'Sold Out';
+    if (isNotDeliverable) return 'Available at Stall';
+    return 'Add to Cart';
+  };
+
+  const getButtonVariant = () => {
+    if (isComingSoon) return 'secondary';
+    if (isSoldOut) return 'secondary';
+    if (isNotDeliverable) return 'secondary';
+    return 'primary';
+  };
+
+  const getButtonDisabled = () => {
+    if (isAvailable) return false;
+    return true; // Disabled for all non-available statuses
+  };
+
+  const imageUrl = food.image || 'https://via.placeholder.com/300x200?text=No+Image';
+
+  const handleImageError = () => {
+    console.log(`Image failed to load for: ${food.name}`);
+    setImageError(true);
+  };
 
   const handleAddToCart = () => {
-    // Check if item is available
     if (!isAvailable) {
       if (isComingSoon) {
         toast('This item will be available soon!', { icon: '⏰' });
       } else if (isSoldOut) {
         toast('This item is sold out!', { icon: '❌' });
+      } else if (isNotDeliverable) {
+        toast('This item is only available at the stall! Visit us to order.', { icon: '🏪' });
       }
       return;
     }
 
-    // Check for active discounts
     if (activeDiscounts.length > 0) {
       setShowDiscountModal(true);
     } else {
@@ -84,40 +112,23 @@ const FoodCard = ({ food }) => {
     setShowDiscountModal(false);
   };
 
-  const getButtonText = () => {
-    if (isComingSoon) return 'Coming Soon';
-    if (isSoldOut) return 'Sold Out';
-    return 'Add to Cart';
-  };
-
-  const getButtonVariant = () => {
-    if (isComingSoon) return 'secondary';
-    if (isSoldOut) return 'secondary';
-    return 'primary';
-  };
-
-  const imageUrl = food.image || 'https://via.placeholder.com/300x200?text=No+Image';
-
   return (
     <>
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-        <div className="relative h-36 sm:h-48 overflow-hidden">
+        <div className="relative h-36 sm:h-48 overflow-hidden bg-gray-100">
           <img
             src={imageUrl}
             alt={food.name}
             className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
-            }}
+            onError={handleImageError}
             loading="lazy"
           />
           
-          {/* Status Overlay - Coming Soon or Sold Out */}
+          {/* Status Overlay - Only for Coming Soon and Sold Out */}
           {(isComingSoon || isSoldOut) && (
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <div className="bg-white px-4 py-2 rounded-lg shadow-lg transform -rotate-12">
-                <span className={`text-sm font-bold ${isComingSoon ? 'text-yellow-600' : 'text-red-600'}`}>
+              <div className="bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg transform -rotate-12">
+                <span className={`text-xs sm:text-sm font-bold ${isComingSoon ? 'text-yellow-600' : 'text-red-600'}`}>
                   {isComingSoon ? '⏰ COMING SOON' : '❌ SOLD OUT'}
                 </span>
               </div>
@@ -175,7 +186,7 @@ const FoodCard = ({ food }) => {
             {food.description || 'No description available'}
           </p>
 
-          {/* Quantity Controls - Only show if available */}
+          {/* Quantity Controls - Only show if available for delivery */}
           {isAvailable && (
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="flex items-center space-x-1 sm:space-x-2">
@@ -208,11 +219,20 @@ const FoodCard = ({ food }) => {
             </div>
           )}
 
+          {/* Status Message for Not Deliverable */}
+          {isNotDeliverable && (
+            <div className="text-center mb-3 sm:mb-4">
+              <p className="text-xs text-orange-600 font-medium">
+                🏪 Available at Stall - Visit us to order
+              </p>
+            </div>
+          )}
+
           {/* Status Message for Coming Soon */}
           {isComingSoon && (
             <div className="text-center mb-3 sm:mb-4">
               <p className="text-xs text-yellow-600 font-medium">
-                ⏰ Arriving at 10 AM
+                ⏰ Coming Soon
               </p>
             </div>
           )}
@@ -221,15 +241,15 @@ const FoodCard = ({ food }) => {
           {isSoldOut && !isComingSoon && (
             <div className="text-center mb-3 sm:mb-4">
               <p className="text-xs text-red-600 font-medium">
-                ❌ Currently out of stock
+                ❌ Sold Out
               </p>
             </div>
           )}
 
-          {/* Add to Cart Button - Changes based on status */}
+          {/* Add to Cart Button */}
           <Button
             onClick={handleAddToCart}
-            disabled={!isAvailable}
+            disabled={getButtonDisabled()}
             variant={getButtonVariant()}
             className="w-full text-xs sm:text-sm py-2 sm:py-2.5"
             size="sm"

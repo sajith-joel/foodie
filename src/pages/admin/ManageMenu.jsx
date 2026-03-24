@@ -20,14 +20,39 @@ const ManageMenu = () => {
     image: '',
     isVegetarian: false,
     available: '',
-    status: 'available' // available, coming_soon, sold_out
+    status: 'available' // available, coming_soon, sold_out, not_deliverable
   });
 
   const categories = ['breakfast', 'lunch', 'dinner', 'snacks', 'beverages', 'desserts'];
   const statusOptions = [
-    { value: 'available', label: 'Available', color: 'green', description: 'Item is in stock and can be ordered' },
-    { value: 'coming_soon', label: 'Coming Soon', color: 'yellow', description: 'Item will be available later (e.g., 10 AM)' },
-    { value: 'sold_out', label: 'Sold Out', color: 'red', description: 'Item is out of stock' }
+    { 
+      value: 'available', 
+      label: 'Available', 
+      color: 'green', 
+      description: 'Item is in stock and can be ordered for delivery',
+      icon: '✅'
+    },
+    { 
+      value: 'coming_soon', 
+      label: 'Coming Soon', 
+      color: 'yellow', 
+      description: 'Item will be available later (e.g., 10 AM)',
+      icon: '⏰'
+    },
+    { 
+      value: 'sold_out', 
+      label: 'Sold Out', 
+      color: 'red', 
+      description: 'Item is out of stock',
+      icon: '❌'
+    },
+    { 
+      value: 'not_deliverable', 
+      label: 'Not Deliverable', 
+      color: 'orange', 
+      description: 'Item is available only for dine-in / pickup (not for delivery)',
+      icon: '🏪'
+    }
   ];
 
   useEffect(() => {
@@ -139,6 +164,8 @@ const ManageMenu = () => {
         return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">⏰ Coming Soon</span>;
       case 'sold_out':
         return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">❌ Sold Out</span>;
+      case 'not_deliverable':
+        return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🏪 Not Deliverable</span>;
       default:
         return <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">✅ Available</span>;
     }
@@ -148,6 +175,7 @@ const ManageMenu = () => {
     switch(status) {
       case 'coming_soon': return 'border-yellow-400 bg-yellow-50';
       case 'sold_out': return 'border-red-400 bg-red-50';
+      case 'not_deliverable': return 'border-orange-400 bg-orange-50';
       default: return 'border-green-400 bg-green-50';
     }
   };
@@ -359,7 +387,7 @@ const ManageMenu = () => {
             />
           </div>
 
-          {/* Item Status Selection - New Section */}
+          {/* Item Status Selection - Updated with Not Deliverable */}
           <div className="border-t pt-4">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Item Status *
@@ -387,9 +415,10 @@ const ManageMenu = () => {
                       <span className={`font-semibold ${
                         option.value === 'coming_soon' ? 'text-yellow-600' :
                         option.value === 'sold_out' ? 'text-red-600' :
+                        option.value === 'not_deliverable' ? 'text-orange-600' :
                         'text-green-600'
                       }`}>
-                        {option.label}
+                        {option.icon} {option.label}
                       </span>
                       {formData.status === option.value && (
                         <span className="ml-2 text-xs text-green-600">✓ Selected</span>
@@ -441,9 +470,10 @@ const ManageMenu = () => {
           <div className="bg-blue-50 p-3 rounded-lg">
             <p className="text-xs text-blue-700">
               <strong>📋 Status Guide:</strong><br/>
-              • <strong>Available</strong> - Item is ready to order<br/>
-              • <strong>Coming Soon</strong> - Show "Coming Soon" badge (for items arriving later)<br/>
-              • <strong>Sold Out</strong> - Show "Sold Out" badge (for items out of stock)
+              • <strong>✅ Available</strong> - Item is ready for delivery<br/>
+              • <strong>⏰ Coming Soon</strong> - Show "Coming Soon" badge (for items arriving later)<br/>
+              • <strong>❌ Sold Out</strong> - Show "Sold Out" badge (for items out of stock)<br/>
+              • <strong>🏪 Not Deliverable</strong> - Show "Not Deliverable" badge (dine-in/pickup only)
             </p>
           </div>
 

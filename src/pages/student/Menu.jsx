@@ -40,10 +40,10 @@ const Menu = () => {
       const items = await getAllMenuItems();
       console.log('Menu items loaded:', items);
       
-      // Filter only available items
-      const availableItems = items.filter(item => item.available > 0);
-      setFoods(availableItems);
-      setFilteredFoods(availableItems);
+      // Show ALL items - don't filter out anything
+      // Students should see everything available at the stall
+      setFoods(items);
+      setFilteredFoods(items);
       
       if (items.length === 0) {
         toast.success('No menu items available yet. Check back later!');
