@@ -24,13 +24,13 @@ const Sidebar = ({ isOpen, onClose }) => {
     { to: '/menu', icon: ShoppingBagIcon, label: 'Browse Menu' },
     { to: '/cart', icon: ShoppingBagIcon, label: 'My Cart' },
     { to: '/my-orders', icon: ClipboardDocumentListIcon, label: 'My Orders' },
-    { 
-      to: '#', 
-      icon: GiftIcon, 
-      label: 'Play & Win', 
-      onClick: () => setShowGameModal(true),
-      special: true 
-    },
+    // { 
+    //   to: '#', 
+    //   icon: GiftIcon, 
+    //   label: 'Play & Win', 
+    //   onClick: () => setShowGameModal(true),
+    //   special: true 
+    // },
   ];
 
   const adminLinks = [
