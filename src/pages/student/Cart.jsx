@@ -12,16 +12,16 @@ import toast from 'react-hot-toast';
 
 // Predefined campus locations
 const CAMPUS_LOCATIONS = [
-  { id: 'admission', name: 'Admission Office', address: 'Admission Office Block' },
-  { id: 'canteen', name: 'Main Canteen', address: 'Near Academic Block' },
-  { id: 'store', name: 'University Store', address: 'Store Complex' },
-  { id: 'mainblock', name: 'Main Block', address: 'Main Academic Building' },
-  { id: 'library', name: 'Central Library', address: 'Library Building' },
+  { id: 'admission', name: 'Stage', address: 'event place' },
+  { id: 'canteen', name: 'Conference hall', address: 'placement cell' },
+  { id: 'store', name: 'LH-13', address: 'main block' },
+  { id: 'mainblock', name: 'Centeral Library', address: 'library' },
+  { id: 'library', name: 'Admission Cell', address: 'Admission office' },
   { id: 'event', name: 'Event Place', address: 'Event Ground' },
-  { id: 'hostel1', name: 'Hostel Block A', address: 'Boys Hostel Area' },
-  { id: 'hostel2', name: 'Hostel Block B', address: 'Girls Hostel Area' },
-  { id: 'sports', name: 'Sports Complex', address: 'Sports Ground' },
-  { id: 'lab', name: 'Computer Lab', address: 'Lab Complex' }
+  { id: 'hostel1', name: 'Physics Lab', address: '' },
+  { id: 'hostel2', name: 'ECE Lab', address: 'Main Block' },
+  { id: 'sports', name: 'LH 01', address: 'Main block' },
+  { id: 'lab', name: 'English Lab', address: '1st Year block' },
 ];
 
 const Cart = () => {
@@ -186,9 +186,9 @@ const Cart = () => {
           <ShoppingBagIcon className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-gray-400 mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Your cart is empty</h2>
           <p className="text-sm sm:text-base text-gray-600 mb-6">Looks like you haven't added any items yet.</p>
-          <Button 
-            onClick={() => navigate('/menu')} 
-            variant="primary" 
+          <Button
+            onClick={() => navigate('/menu')}
+            variant="primary"
             className="w-full sm:w-auto"
           >
             Browse Menu
